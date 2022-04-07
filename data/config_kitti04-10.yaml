@@ -1,0 +1,40 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 7.070912000000e+02
+Camera.fy: 7.070912000000e+02
+Camera.cx: 6.018873000000e+02
+Camera.cy: 1.831104000000e+02
+
+Camera.k1: 0
+Camera.k2: 0
+Camera.p1: 0
+Camera.p2: 0
+# Camera.k3: 0.0
+
+# Camera frames per second 
+Camera.fps: 22.0
+#Camera.fps: 4.4
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+#--------------------------------------------------------------------------------------------
+# PNEC Parameters
+#--------------------------------------------------------------------------------------------
+PNEC.NEC: 0
+
+PNEC.noiseFrame: "Target"
+PNEC.regularization: 1.0e-13
+PNEC.weightedIterations: 10
+
+PNEC.SCF: 1
+PNEC.ceres: 1
+
+PNEC.ransac: 1
+PNEC.maxRANSACIterations: 5000
+PNEC.RANSACSampleSize: 10
