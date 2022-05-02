@@ -5,7 +5,7 @@
 
 #include <basalt/calibration/calibration.hpp>
 #include <basalt/utils/vio_config.h>
-#include <cereal/archives/json.hpp>
+#include <basalt/serialization/headers_serialization.h>
 #include <opencv2/core/core.hpp>
 
 #include <camera.h>
