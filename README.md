@@ -1,15 +1,35 @@
-## PNEC
+<h2 align="center">The Probabilistic Normal Epipolar Constraint for Frame-To-Frame Rotation Optimization under Uncertain Feature Positions</h2>
+<hr>
+<p align="center">
+    <a href="https://vision.in.tum.de/members/muhled">Dominik Muhle</a><sup>1*</sup> &emsp;
+    <a href="https://lukaskoestler.com">Lukas Koestler</a><sup>1*</sup> &emsp;
+    <a href="https://vision.in.tum.de/members/demmeln">Nikolaus Demmel</a><sup>1</sup> &emsp;
+    <a href="http://florianbernard.net/">Florian Bernard</a><sup>2</sup> &emsp;
+    <a href="https://vision.in.tum.de/members/cremers">Daniel Cremers</a><sup>1</sup>
+</p>
 
-For more information see <http://go.vision.in.tum.de/pnec>
+<p align="center">
+    <sup>*</sup>equal contribution&emsp;&emsp;&emsp;
+</p>
+
+<p align="center">
+    <sup>1</sup>Technical University of Munich&emsp;&emsp;&emsp;
+    <sup>2</sup>University of Bonn<br>
+</p>
+
+<p align="center">
+    IEEE / CVF Computer Vision and Pattern Recognition Conference (CVPR) 2022, New Orleans, USA
+</p>
+<p align="center">
+    <a href="https://arxiv.org/abs/2204.02256">arXiv</a> |
+    <a href="https://go.vision.in.tum.de/pnec">Project Page</a>
+</p>
+
 ![teaser](assets/teaser.png)
 
 This project provides code for the Probabilistic Normal Epipolar Constraint (PNEC). The PNEC is an extension of the NEC that incorporates uncertainty information to provide more accurate frame-to-frame rotation estimation. This repository allows for the evaluation of the PNEC on real-world data (the KITTI dataset) as an odometry system and on simulated data.
 The Code in this repository is influenced by [Monocular Rotational Odometry](https://github.com/ckchng/MRO) (MRO) by Chng et al. and adapted for the PNEC. Please check out their work as well. Due to the usage of KLT-tracks instead of ORB-features, rotation averaging and loop closure are disabled.
 
-## Related Publications
-The Probabilistic Normal Epipolar Constraint for Frame-To-Frame Rotation Optimization under Uncertain Feature Positions:
-
-* **The Probabilistic Normal Epipolar Constraint for Frame-To-Frame Rotation Optimization under Uncertain Feature Positions**, D. Muhle, L. Koestler, N. Demmel, F. Bernard, D. Cremers, In 2022 Conference on Computer Vision and Pattern Recognition (CVPR), <!--[[DOI]](https://doi.org/), -->[[arXiv:2204.02256]](https://arxiv.org/abs/2204.02256).
 
 ## Installation
 ### Docker
