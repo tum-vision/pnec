@@ -10,7 +10,7 @@ results_path="/home/results"
 no_skip="true"
 
 tracking_config_path="/app/pnec/data/tracking/KITTI"
-tracking_calib_path="/app/pnec/third_party/basalt/data/kitti_calib.json"
+tracking_calib_path="/app/pnec/data/tracking/KITTI/kitti_calib.json"
 config_path="/app/pnec/data"
 pnec_config="${config_path}/test_config.yaml"
 
