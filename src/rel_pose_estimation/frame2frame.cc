@@ -57,129 +57,6 @@
 namespace pnec {
 namespace rel_pose_estimation {
 
-// TO Odometry
-// void InlierExtraction(
-//     const opengv::bearingVectors_t &bvs1, const opengv::bearingVectors_t
-//     &bvs2, const std::vector<Eigen::Vector3d> &fvs1, const
-//     std::vector<Eigen::Vector3d> &fvs2, std::vector<Eigen::Vector2d> &pvs1,
-//     std::vector<Eigen::Vector2d> &pvs2, const std::vector<Eigen::Matrix3d>
-//     &covs, opengv::bearingVectors_t &in_bvs1, opengv::bearingVectors_t
-//     &in_bvs2, std::vector<Eigen::Matrix3d> &in_proj_covs, const
-//     std::vector<int> &inliers, bool host_frame = false) {
-//   bool unscented = true;
-//   in_bvs1.clear();
-//   in_bvs1.reserve(inliers.size());
-//   in_bvs2.clear();
-//   in_bvs2.reserve(inliers.size());
-//   in_proj_covs.clear();
-//   in_proj_covs.reserve(inliers.size());
-//   Eigen::Matrix3d K;
-//   cv::cv2eigen(pnec::Camera::instance().cameraParameters().intrinsic(), K);
-//   Eigen::Matrix3d K_inv = K.inverse();
-//   for (const auto inlier : inliers) {
-//     // for (int inlier = 0; inlier < n_matches; inlier++) {
-//     in_bvs1.push_back(bvs1[inlier]);
-//     in_bvs2.push_back(bvs2[inlier]);
-//     if (unscented) {
-//       if (host_frame) {
-//         Eigen::Vector3d mu(pvs1[inlier](0), pvs1[inlier](1), 1.0);
-//         in_proj_covs.push_back(
-//             mro::common::UnscentedTransform(mu, covs[inlier], 1.0, K_inv));
-//       } else {
-//         Eigen::Vector3d mu(pvs2[inlier](0), pvs2[inlier](1), 1.0);
-//         in_proj_covs.push_back(
-//             mro::common::UnscentedTransform(mu, covs[inlier], 1.0, K_inv));
-//       }
-//     } else {
-//       if (host_frame) {
-//         Eigen::Matrix3d jacobian =
-//             mro::common::ProjectionJacobian(fvs1[inlier]);
-//         in_proj_covs.push_back(jacobian * covs[inlier] *
-//         jacobian.transpose());
-//       } else {
-//         Eigen::Matrix3d jacobian =
-//             mro::common::ProjectionJacobian(fvs2[inlier]);
-//         in_proj_covs.push_back(jacobian * covs[inlier] *
-//         jacobian.transpose());
-//       }
-//     }
-//   }
-// }
-
-// void GetFeatures(
-//     pnec::frames::BaseFrame::Ptr frame1, pnec::frames::BaseFrame::Ptr frame2,
-//     const pnec::FeatureMatches &matches, std::vector<cv::KeyPoint> &img_p1,
-//     std::vector<cv::KeyPoint> &img_p2, opengv::bearingVectors_t &bvs1,
-//     opengv::bearingVectors_t &bvs2, std::vector<Eigen::Vector3d> &fvs1,
-//     std::vector<Eigen::Vector3d> &fvs2, std::vector<Eigen::Vector2d> &pvs1,
-//     std::vector<Eigen::Vector2d> &pvs2, std::vector<Eigen::Matrix3d> &covs,
-//     bool weighted, bool host_frame = false) {
-//   const auto &kps1 = frame1->undistortedKeypoints();
-//   const auto &kps2 = frame2->undistortedKeypoints();
-//   std::vector<Eigen::Matrix2d> covariances;
-//   if (host_frame) {
-//     covariances = frame1->covariances();
-//   } else {
-//     covariances = frame2->covariances();
-//   }
-
-//   const size_t n_matches = (size_t)matches.size();
-//   img_p1.clear();
-//   img_p1.reserve(n_matches);
-//   img_p2.clear();
-//   img_p2.reserve(n_matches);
-//   bvs1.clear();
-//   bvs1.reserve(n_matches);
-//   bvs2.clear();
-//   bvs2.reserve(n_matches);
-//   fvs1.clear();
-//   fvs1.reserve(n_matches);
-//   fvs2.clear();
-//   fvs2.reserve(n_matches);
-//   pvs1.clear();
-//   pvs1.reserve(n_matches);
-//   pvs2.clear();
-//   pvs2.reserve(n_matches);
-//   covs.clear();
-//   covs.reserve(n_matches);
-
-//   Eigen::Matrix3d K;
-//   cv::cv2eigen(pnec::Camera::instance().cameraParameters().intrinsic(), K);
-//   Eigen::Matrix3d K_inv = K.inverse();
-
-//   for (const auto &match : matches) {
-//     img_p1.push_back(kps1[match.queryIdx]);
-//     Eigen::Vector3d point_1(kps1[match.queryIdx].pt.x * 1.0,
-//                             kps1[match.queryIdx].pt.y * 1.0, 1.0);
-//     fvs1.push_back(K_inv * point_1);
-//     bvs1.push_back((K_inv * point_1).normalized());
-//     pvs1.push_back(
-//         Eigen::Vector2d(kps1[match.queryIdx].pt.x,
-//         kps1[match.queryIdx].pt.y));
-//     Eigen::Vector3d point_2(kps2[match.trainIdx].pt.x * 1.0,
-//                             kps2[match.trainIdx].pt.y * 1.0, 1.0);
-//     img_p1.push_back(kps1[match.trainIdx]);
-//     fvs2.push_back(K_inv * point_2);
-//     bvs2.push_back((K_inv * point_2).normalized());
-//     pvs2.push_back(
-//         Eigen::Vector2d(kps1[match.trainIdx].pt.x,
-//         kps1[match.trainIdx].pt.y));
-//     if (weighted) {
-//       if (host_frame) {
-//         Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
-//         covariance.topLeftCorner(2, 2) = covariances[match.queryIdx];
-//         covs.push_back(covariance);
-//       } else {
-//         Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
-//         covariance.topLeftCorner(2, 2) = covariances[match.trainIdx];
-//         covs.push_back(covariance);
-//       }
-//     } else {
-//       covs.push_back(Eigen::Matrix3d::Zero());
-//     }
-//   }
-// }
-
 Frame2Frame::Frame2Frame(const pnec::rel_pose_estimation::Options &options)
     : options_{options} {}
 Frame2Frame::~Frame2Frame() {}
@@ -228,11 +105,8 @@ Sophus::SE3d Frame2Frame::AlignFurther(pnec::frames::BaseFrame::Ptr frame1,
       PNECAlign(bvs1, bvs2, proj_covs, prev_rel_pose, inliers, dummy_timing);
 
   if (ransac_iterations_ >= options_.max_ransac_iterations_) {
-    // std::cout << "Could align Frames: RANSAC took too long!" << std::endl;
     success = false;
   } else if (inliers.size() < options_.min_inliers_ && inliers.size() != 0) {
-    // std::cout << "Could align Frames: Didn't find enough inliers!" <<
-    // std::endl;
     success = false;
   } else {
     success = true;
@@ -252,21 +126,6 @@ Sophus::SE3d Frame2Frame::PNECAlign(
   if (ablation_folder != "") {
     pnec::out::SavePose(ablation_folder, "PNEC", curr_timestamp_, rel_pose);
   }
-
-  // To rel_pose_estimation
-  // std::vector<Eigen::Vector3d> bvs_1;
-  // std::vector<Eigen::Vector3d> bvs_2;
-  // for (const auto &bv : in_bvs1) {
-  //   bvs_1.push_back(bv);
-  // }
-  // for (const auto &bv : in_bvs2) {
-  //   bvs_2.push_back(bv);
-  // }
-  // double nec_cost = mro::align::CostFunction(bvs_1, bvs_2, covs, ES_pose);
-  // double pnec_cost = mro::align::CostFunction(bvs_1, bvs_2, covs,
-  // prev_PNEC_); SaveCost("cost", nec_cost, pnec_cost, curr_timestamp_,
-  // weighted_,
-  //          ablation_folder);
   return rel_pose;
 }
 

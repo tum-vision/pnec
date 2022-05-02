@@ -76,14 +76,6 @@ LoadPNECConfig(const std::string &config_path) {
   options.max_ransac_iterations_ = settings["PNEC.maxRANSACIterations"];
   options.ransac_sample_size_ = settings["PNEC.RANSACSampleSize"];
 
-  //   const int nec_int = settings["PNEC.NEC"];
-  //   const int max_weighted_it = settings["PNEC.weightedIterations"];
-  //   const int scf_int = settings["PNEC.SCF"];
-  //   const int ceres_int = settings["PNEC.ceres"];
-  //   const bool nec = (nec_int == 0) ? false : true;
-  //   const bool scf = (scf_int == 0) ? false : true;
-  //   const bool ceres = (ceres_int == 0) ? false : true;
-
   return options;
 }
 

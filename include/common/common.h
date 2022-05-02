@@ -88,11 +88,6 @@ double TranslationalDifference(const Eigen::Vector3d &translation_1,
                                const Eigen::Vector3d &translation_2,
                                bool both_directions = true);
 
-// double CostFunction(const std::vector<Eigen::Vector3d> &bvs_1,
-//                     const std::vector<Eigen::Vector3d> &bvs_2,
-//                     const std::vector<Eigen::Matrix3d> &covs,
-//                     const Sophus::SE3d &camera_pose);
-
 double CostFunction(const opengv::bearingVectors_t &bvs_1,
                     const opengv::bearingVectors_t &bvs_2,
                     const std::vector<Eigen::Matrix3d> &covs,

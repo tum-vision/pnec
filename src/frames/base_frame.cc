@@ -78,7 +78,6 @@ void BaseFrame::undistortKeypoints() {
     cv::KeyPoint kp = keypoints_[i];
     kp.pt.x = mat.at<double>(i, 0);
     kp.pt.y = mat.at<double>(i, 1);
-    // undistorted_keypoints_[i] = kp;
     undistorted_keypoints_.push_back(kp);
   }
 }
@@ -107,17 +106,6 @@ void BaseFrame::UnscentedTransform() {
   projected_points_.clear();
   Eigen::Matrix3d K_inv = K.inverse();
 
-  // if (undistorted_keypoints_.size() != covariances_.size()) {
-  //   std::cout
-  //       << "Warning! Number of keypoints does not match number of
-  //       covariances."
-  //       << std::endl;
-  //   std::cout << id_ << std::endl
-  //             << undistorted_keypoints_.size() << std::endl
-  //             << covariances_.size() << std::endl;
-  //   return;
-  // }
-
   for (int i = 0; i < undistorted_keypoints_.size(); i++) {
     cv::KeyPoint kp = undistorted_keypoints_[i];
     Eigen::Vector3d mu(kp.pt.x, kp.pt.y, 1.0);
@@ -131,19 +119,6 @@ void BaseFrame::UnscentedTransform() {
           mu, cov, K_inv, 1.0, pnec::common::Pinhole));
     }
   }
-
-  // for (int i = 0; i < covariances_.size(); i++) {
-  //   cv::KeyPoint kp = undistorted_keypoints_[i];
-  //   Eigen::Matrix2d cov_2d = covariances_[i];
-
-  //   Eigen::Vector3d mu(kp.pt.x, kp.pt.y, 1.0);
-  //   Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
-  //   cov.topLeftCorner(2, 2) = cov_2d;
-
-  //   projected_points_.push_back((K_inv * mu).normalized());
-  //   projected_covariances_.push_back(pnec::common::UnscentedTransform(
-  //       mu, cov, K_inv, 1.0, pnec::common::Pinhole));
-  // }
 }
 
 void BaseFrame::PlotFeatures() {

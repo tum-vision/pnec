@@ -45,10 +45,6 @@ void AnisotropyExperiments::GenerateExperiments(std::string base_folder,
                                                 size_t num_experiments,
                                                 size_t num_points,
                                                 std::vector<double> levels) {
-  // if (!boost::filesystem::is_directory(base_folder)) {
-  //   boost::filesystem::create_directory(base_folder);
-  // }
-
   for (const auto &level : levels) {
     std::string level_folder = base_folder + "/" + std::to_string(level);
 

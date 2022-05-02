@@ -113,11 +113,6 @@ Eigen::Matrix3d ComposeMPNEC(const opengv::bearingVectors_t &bvs_1,
   for (size_t i = 1; i < bvs_1.size(); i++) {
     Eigen::Matrix3d bvs_1_hat = pnec::common::SkewFromVector(bvs_1[i]);
     Eigen::Vector3d n = bvs_1[i].cross(rotation * bvs_2[i]);
-    // M += n * n.transpose() /
-    //      ((translation.transpose() * bvs_1_hat * rotation * covs[i] *
-    //        rotation.transpose() * bvs_1_hat.transpose() * translation)[0, 0]
-    //        +
-    //       reg);
     M += n * n.transpose() /
          ((translation.transpose() * bvs_1_hat * rotation * covs[i] *
            rotation.transpose() * bvs_1_hat.transpose() * translation) +
@@ -205,31 +200,6 @@ double TranslationalDifference(const Eigen::Vector3d &translation_1,
   }
   return error * 180 / M_PI;
 }
-
-// double CostFunction(const std::vector<Eigen::Vector3d> &bvs_1,
-//                     const std::vector<Eigen::Vector3d> &bvs_2,
-//                     const std::vector<Eigen::Matrix3d> &covs,
-//                     const Sophus::SE3d &camera_pose) {
-//   double cost = 0;
-//   Eigen::Matrix3d rotation = camera_pose.rotationMatrix();
-//   Eigen::Vector3d translation = camera_pose.translation();
-
-//   for (size_t i = 0; i < bvs_1.size(); i++) {
-//     Eigen::Vector3d bv_1 = bvs_1[i];
-//     Eigen::Vector3d bv_2 = bvs_2[i];
-//     Eigen::Matrix3d cov = covs[i];
-
-//     Eigen::Matrix3d bv_1_hat = pnec::common::SkewFromVector(bv_1);
-
-//     Eigen::Vector3d transformed_t =
-//         (translation.transpose() * bv_1_hat * rotation).transpose();
-
-//     cost += std::pow(translation.transpose() * bv_1.cross(rotation * bv_2),
-//     2) /
-//             (transformed_t.transpose() * cov * transformed_t);
-//   }
-//   return cost / bvs_1.size();
-// }
 
 double CostFunction(const opengv::bearingVectors_t &bvs_1,
                     const opengv::bearingVectors_t &bvs_2,

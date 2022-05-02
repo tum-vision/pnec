@@ -72,11 +72,6 @@ void PNECCeres::Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
                          const std::vector<Eigen::Matrix3d> &covs,
                          double regularization,
                          pnec::common::NoiseFrame noise_frame) {
-  // TODO:
-  // options_.function_tolerance = 1e-20;
-  // options_.gradient_tolerance = 1e-20;
-  // options_.parameter_tolerance = 1e-20;
-  // options_.max_num_iterations = num_iterations;
 
   ceres::Problem problem;
   std::vector<double *> orientation_d =
@@ -109,9 +104,6 @@ void PNECCeres::Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
                               new ceres::EigenQuaternionParameterization);
 
   ceres::Solve(options_, &problem, &summary_);
-
-  // std::cout << summary_.BriefReport() << "\n";
-  // std::cout << summary_.FullReport() << "\n";
 }
 
 void PNECCeres::InitValues(const Eigen::Quaterniond orientation, double theta,

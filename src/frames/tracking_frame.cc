@@ -48,7 +48,6 @@ void TrackingFrame::FindFeatures(pnec::common::FrameTiming &frame_timing) {
   auto tic = std::chrono::high_resolution_clock::now(),
        toc = std::chrono::high_resolution_clock::now();
   cv::Mat image = getImage();
-  // cv::pyrDown(image, image, cv::Size(image.cols / 2, image.rows / 2));
 
   basalt::OpticalFlowInput::Ptr img_ptr =
       pnec::converter::OpticalFlowFromOpenCV(image, id_);
@@ -58,19 +57,14 @@ void TrackingFrame::FindFeatures(pnec::common::FrameTiming &frame_timing) {
       std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic);
 
   basalt::OpticalFlowResult::Ptr result = tracking_.processFrame(id_, img_ptr);
-  // std::cout << "Processed Frame" << std::endl;
 
   pnec::converter::KeypointsFromOpticalFlow(result, keypoints_, keypoint_ids_);
 
   auto result_cov = tracking_.Covariances();
   if (result_cov[0].size() != 0) {
     for (const auto &covariance : result_cov[0]) {
-      //   auto cov = covariance.second;
-      //   Eigen::Matrix2d cov2 = cov.cast<double>();
       covariances_.push_back(covariance.second.cast<double>());
     }
-
-    // PlotFeatures();
   }
 
   tracking_.DeleteOldKeypoints();

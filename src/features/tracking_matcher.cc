@@ -70,7 +70,6 @@ TrackingMatcher::FindMatches(pnec::frames::BaseFrame::Ptr prev_frame,
       }
     }
   }
-  // std::cout << "Matches found: " << matches.size() << std::endl;
 
   // find and update mean rad
   std::vector<double> dists;
@@ -87,9 +86,6 @@ TrackingMatcher::FindMatches(pnec::frames::BaseFrame::Ptr prev_frame,
 
   if (m_local_rad < min_local_rad_) {
     skipping = true;
-    // std::cout << "should be skipping frame - local rad = " << m_local_rad
-    //           << std::endl
-    //           << std::endl;
   } else {
     skipping = false;
   }

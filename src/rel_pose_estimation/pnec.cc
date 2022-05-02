@@ -291,14 +291,8 @@ Sophus::SE3d PNEC::WeightedEigensolver(
   std::uniform_real_distribution<double> uniform01(0.0, 1.0);
   for (size_t iteration = 0; iteration < options_.weighted_iterations_ - 1;
        iteration++) {
-    // std::cout << "Iteration: " << iteration << std::endl;
     std::vector<double> weights;
     for (size_t i = 0; i < projected_covariances.size(); i++) {
-      // double weight =
-      //     mro::align::Weight(bvs1[i], bvs2[i], initial_pose.translation(),
-      //                        initial_pose.rotationMatrix(),
-      //                        projected_covariances[i], regularization,
-      //                        false);
       double weight = pnec::common::Weight(
           bvs1[i], bvs2[i], initial_pose.translation(),
           initial_pose.rotationMatrix(), projected_covariances[i],

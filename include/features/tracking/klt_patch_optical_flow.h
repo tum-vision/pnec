@@ -163,10 +163,6 @@ public:
       addPoints();
       filterPoints();
     }
-    // std::cout << "Create "
-    //           << (transforms->observations[0].size() - n_tracked_points)
-    //           << " new patches." << std::endl;
-
     frame_counter++;
     return transforms;
   }
@@ -183,9 +179,6 @@ public:
     size_t num_points = transform_map_1.size();
 
     std::vector<KeypointId> ids;
-    // std::vector<int> forward_tracking(num_points, 0);
-    // std::vector<int> backward_tracking(num_points, 0);
-    // std::vector<int> distance_tracking(num_points, 0);
     Eigen::aligned_vector<Eigen::AffineCompact2f> init_vec;
 
     ids.reserve(num_points);
@@ -301,15 +294,11 @@ public:
                 H(1, 1) = e_pos_y - 2 * e_0 + e_neg_y;
                 result_cov[id] = H.inverse() * 52.0;
               } else {
-                // result_cov[id] = Matrix2::Identity();
                 result_cov[id] = transform_2.rotation() *
                                  (patch_vec[min_level].Cov / 10.0) *
                                  transform_2.rotation()
                                      .transpose(); // factor for trace norming
               }
-              // result_cov[id] = transform_2.rotation() * patch_vec[0].Cov *
-              //                  transform_2.rotation().transpose();
-              // result_cov[id] = patch_vec[0].Cov;
             } else {
               // remove id from patches map
               valid = false;
@@ -345,8 +334,6 @@ public:
 
     for (int level = config.optical_flow_levels;
          level >= min_level && patch_valid; level--) {
-      // for (int level = config.optical_flow_levels; level >= 0 && patch_valid;
-      //      level--) {
       const Scalar scale = 1 << level;
 
       transform.translation() /= scale;
@@ -407,8 +394,6 @@ public:
 
     detectKeypoints(pyramid->at(0).lvl(min_level), kd,
                     config.optical_flow_detection_grid_size, 1, pts0);
-    // detectKeypoints(pyramid->at(0).lvl(0), kd,
-    //                 config.optical_flow_detection_grid_size, 1, pts0);
 
     Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f> new_poses0,
         new_poses1;
@@ -417,7 +402,6 @@ public:
       kd.corners[i] *= scaling;
       Eigen::aligned_vector<PatchT> &p = patches[last_keypoint_id];
 
-      // Vector2 pos = kd.corners[i].cast<Scalar>() * scaling;
       Vector2 pos = kd.corners[i].cast<Scalar>();
 
       for (int l = 0; l <= config.optical_flow_levels; l++) {
@@ -428,7 +412,6 @@ public:
 
       Eigen::AffineCompact2f transform;
       transform.setIdentity();
-      // transform.translation() = kd.corners[i].cast<Scalar>() * scaling;
       transform.translation() = kd.corners[i].cast<Scalar>();
 
       transforms->observations.at(0)[last_keypoint_id] = transform;

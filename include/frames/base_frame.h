@@ -82,8 +82,6 @@ public:
   void PlotFeatures();
 
 protected:
-  // virtual void FindFeatures() = 0;
-
   void undistortKeypoints();
 
   void UnscentedTransform();

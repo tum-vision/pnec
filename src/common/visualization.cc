@@ -180,8 +180,6 @@ char plotCovariancess(pnec::frames::BaseFrame::Ptr curr_frame,
     if (covariances[inlier.trainIdx](0, 0) >= 0.0) {
       cv::Mat cv_cov;
       cv::eigen2cv(covariances[inlier.trainIdx], cv_cov);
-      // cv::RotatedRect ellipse = mro::common::getErrorEllipse(
-      //     2.4477, kps2[inlier.trainIdx].pt, cv_cov);
       cv::RotatedRect ellipse = pnec::visualization::GetErrorEllipse(
           80.0, kps2[inlier.trainIdx].pt, cv_cov);
       cv::ellipse(img, ellipse, cv::Scalar(51, 0, 255), 2);

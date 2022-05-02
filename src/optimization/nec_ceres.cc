@@ -70,10 +70,6 @@ NECCeres::~NECCeres() {}
 
 void NECCeres::Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
                         const std::vector<Eigen::Vector3d> &bvs_2) {
-  // options_.function_tolerance = 1e-20;
-  // options_.gradient_tolerance = 1e-20;
-  // options_.parameter_tolerance = 1e-20;
-  // options_.max_num_iterations = 100;
 
   ceres::Problem problem;
   std::vector<double *> orientation_d =

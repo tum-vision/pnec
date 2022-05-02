@@ -93,20 +93,6 @@ protected:
 
   std::map<std::string, Sophus::SE3d> prev_rel_poses_;
 
-  // Sophus::SE3d prev_NEC_ = Sophus::SE3d();
-  // Sophus::SE3d prev_NEC_LS_ = Sophus::SE3d();
-  // Sophus::SE3d prev_NEC_PNEC_LS_ = Sophus::SE3d();
-  // Sophus::SE3d prev_PNEC_ = Sophus::SE3d();
-  // std::vector<Sophus::SE3d> prev_PNEC_it_ = {Sophus::SE3d(), Sophus::SE3d(),
-  //                                            Sophus::SE3d(), Sophus::SE3d()};
-  // Sophus::SE3d prev_woLS_ = Sophus::SE3d();
-  // Sophus::SE3d prev_LS_only_ = Sophus::SE3d();
-  // Sophus::SE3d prev_LS_only_2_ = Sophus::SE3d();
-  // Sophus::SE3d prev_8pt_ = Sophus::SE3d();
-  // Sophus::SE3d prev_7pt_ = Sophus::SE3d();
-  // Sophus::SE3d prev_nister5pt_ = Sophus::SE3d();
-  // Sophus::SE3d prev_stewenius5pt_ = Sophus::SE3d();
-
   // Output values
   int ransac_iterations_;
 };

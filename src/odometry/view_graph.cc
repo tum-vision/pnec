@@ -147,9 +147,6 @@ void ViewGraph::ShortenViewGraph() {
       RemoveConnection(earliest_view,
                        earliest_view->connections().begin()->first);
     }
-    // for (const auto &connection : earliest_view->connections()) {
-    //   RemoveConnection(earliest_view, connection.first);
-    // }
     // Save Pose before deleting it
     pnec::out::SavePose(results_path_ + poses_directory_, poses_filename_,
                         earliest_view->Timestamp(), earliest_view->Pose(),

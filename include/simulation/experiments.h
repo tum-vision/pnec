@@ -86,7 +86,6 @@ public:
       : seed_{seed}, translation_{translation}, camera_model_{camera_model} {
     SetRandom();
   }
-  // BaseExperiments() { SetRandom(); }
   ~BaseExperiments() {}
 
 protected:

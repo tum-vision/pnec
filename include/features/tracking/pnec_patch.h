@@ -130,8 +130,6 @@ template <typename Scalar, typename Pattern> struct POpticalFlowPatch {
     Matrix2 H_r2;
     H_r2 << H_se2(0, 0), H_se2(0, 1), H_se2(1, 0), H_se2(1, 1);
 
-    // Cov.setIdentity();
-    // H_r2.ldlt().solveInPlace(Cov);
     H_se2_inv.setIdentity();
     H_se2.ldlt().solveInPlace(H_se2_inv);
     Cov << H_se2_inv(0, 0), H_se2_inv(0, 1), H_se2_inv(1, 0), H_se2_inv(1, 1);
@@ -174,8 +172,6 @@ template <typename Scalar, typename Pattern> struct POpticalFlowPatch {
   Vector2 pos;
   VectorP data; // negative if the point is not valid
 
-  // MatrixP3 J_se2;  // total jacobian with respect to se2 warp
-  // Matrix3 H_se2_inv;
   Matrix3P H_se2_inv_J_se2_T;
   Matrix2 Cov;
 
