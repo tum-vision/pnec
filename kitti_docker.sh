@@ -41,4 +41,4 @@ fi
 
 output="$results_path/$sequence/"
 
-./build/pnec_vo $camera_config $pnec_config $tracking_path $tracking_calib_path $images_path $timestamp_path $output $no_skip ${gt} &
+./build/pnec_vo $camera_config $pnec_config $tracking_path $tracking_calib_path $images_path $timestamp_path $output $no_skip ${gt}
