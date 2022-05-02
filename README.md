@@ -77,9 +77,9 @@ Go to the root directory
 ### Example in a docker container
 1. Build the docker image
 2. Create the container \
-```docker run -d --name pnec --mount type=bind,source=path_to_kitti,target=/home/sequences --mount type=bind,source=path_to_results,target=/home/results pnec:latest```
+```docker run -i -d --name pnec --mount type=bind,source=path_to_kitti,target=/home/sequences --mount type=bind,source=path_to_results,target=/home/results pnec:latest```
 3. Run the ```kitti_docker.sh``` script
-```docker exec pnec /bin/sh -c "/app/kitti_docker.sh"```
+```docker exec pnec /bin/sh -c "/app/kitti_docker.sh -s sequence"```
 
 ### The KITTI dataset
 The following provides an example of how to run the VO algorithm on the KITTI dataset. 

@@ -1,6 +1,5 @@
 third_party/
 build/
 Dockerfile
-kitti_docker.sh
 README.md
 LICENSE
