@@ -5,12 +5,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Lnndon
 RUN apt-get update && apt-get install -y sudo git cmake build-essential
 # suitesparse, boost, eigen 3.4!!!, ceres dependencies, opencv
-# RUN git clone https://gitlab.com/libeigen/eigen.git && \
-#     cd eigen/ && \
-#     mkdir build && \
-#     cd build && \
-#     cmake .. && \
-#     make install && \
 RUN apt-get update && \
     apt-get install -y \
     libgoogle-glog-dev libgflags-dev libatlas-base-dev \
@@ -31,15 +25,8 @@ RUN git clone --recursive https://gitlab.com/VladyslavUsenko/basalt.git && \
     git clone https://github.com/Neargye/magic_enum.git && \
     cd .. && \
     ./scripts/install_deps.sh
-    # mkdir build && \
-    # cd build/ && \
-#     cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_FLAGS="-Wno-error" && \
-#     make -j8
-
-# # WORKDIR /app/pnec/thrid_party/basalt/thirdparty
-# # RUN 
-# # RUN cd ./basalt/ && ./scripts/install_deps.sh  && mkdir build && cd build/ && cmake -E env CXXFLAGS="-Wno-error" && cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && make -j8
-# WORKDIR /app/pnec/thrid_party
-# RUN 
 
 COPY . /app/pnec/
+WORKDIR /app/pnec
+RUN mkdir build && cd build && cmake .. && make -j8
+COPY kitti_docker.sh /app/kitti_docker.sh

@@ -11,35 +11,41 @@ The Probabilistic Normal Epipolar Constraint for Frame-To-Frame Rotation Optimiz
 
 * **The Probabilistic Normal Epipolar Constraint for Frame-To-Frame Rotation Optimization under Uncertain Feature Positions**, D. Muhle, L. Koestler, N. Demmel, F. Bernard, D. Cremers, In 2022 Conference on Computer Vision and Pattern Recognition (CVPR), <!--[[DOI]](https://doi.org/), -->[[arXiv:2204.02256]](https://arxiv.org/abs/2204.02256).
 
+## Installation
+### Docker
+For easy usage a dockerfile is included that installs all dependencies and the PNEC. An example usage is given below.
+
 ### Dependencies
 Tested on:
-* Eigen 3.3.4
-  sudo apt install libeigen3-dev
+* SuiteSparse\
+  ```sudo apt-get install libsuitesparse-dev```
 
-* SuiteSparse
-  sudo apt-get install libsuitesparse-dev
+* Ceres Solver \
+  <http://ceres-solver.org/installation.html> provides a guide on how to install the ceres solver
+  Ceres is dependent on
+  * Eigen 3.3
+  * glog 0.3.5
+  * gflags
+  * SuiteSparse 4.0
+  * etc.
 
-* opencv 4.0.0
+* opencv 4.0.0 \
   <https://www.pyimagesearch.com/2018/05/28/ubuntu-18-04-how-to-install-opencv/> provides a good guide.
 
-* Boost (Filesystem) 1.6.5
-  sudo apt-get install libboost-all-dev
+* Boost (Filesystem) 1.6.5\
+  ```sudo apt-get install libboost-all-dev```
 
-* opengv 1.0.0 (refer to the [official site](https://laurentkneip.github.io/opengv/) for potential installation FAQs)
-  * cd third_party/opengv
-  * mkdir build
-  * cd build
-  * cmake ..
-  * make
-  * cmake -DCMAKE_INSTALL_PREFIX=/path/to/local_install -P cmake_install.cmake
+* opengv 1.0.0\
+  (refer to the [official site](https://laurentkneip.github.io/opengv/) for potential installation FAQs)\
+  opengv is included in basalt and therefore does not need to be installed directly
 
-* basalt [gitlab](https://gitlab.com/VladyslavUsenko/basalt/-/tree/master/)
-  * clone into ```third_party/basalt```
-  * go to ```third_party/basalt```
-  * run ```git submodule update --init --recursive```
+* basalt [gitlab](https://gitlab.com/VladyslavUsenko/basalt/-/tree/master/) \
+  Also includes Eigen 3.4, opengv, Sophus and others using git submodules
+  * clone into ```third_party/basalt``` with git submodules \
+    ```git clone --recursive https://gitlab.com/VladyslavUsenko/basalt.git```
   * follow their instructions to install
 
-## Installation
+## Installing PNEC
 Go to the root directory
 ```
   mkdir build
@@ -48,8 +54,14 @@ Go to the root directory
   make
 ```
 ## Usage
+### Example in a docker container
+1. Build the docker image
+2. Create the container \
+```docker run -d --name pnec --mount type=bind,source=path_to_kitti,target=/home/sequences --mount type=bind,source=path_to_results,target=/home/results pnec:latest```
+3. Run the ```kitti_docker.sh``` script
+```docker exec pnec /bin/sh -c "/app/kitti_docker.sh"```
 
-### the KITTI dataset
+### The KITTI dataset
 The following provides an example of how to run the VO algorithm on the KITTI dataset. 
 #### data format
 The VO algorithm expects the images to be in the ``ìmage_2`` directory of the ``XX`` sequence. This directory should also include a ``times.txt`` containing timestamps in seconds and a ``XX.txt`` containing the ground truth poses as 3x4 transformation matrices, which is then copied to the respective results folder.
