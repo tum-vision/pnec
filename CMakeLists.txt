@@ -92,7 +92,7 @@ set( THIRD_PARTY_LIBS
     -lboost_system
     opengv
     basalt
-    ${Ceres_LIBRARIES}
+    ${CERES_LIBRARIES}
 )
 
 # set file lists
