@@ -21,10 +21,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(UpdateCacheVariable)
 
-find_package(Eigen3 3.3 REQUIRED)
+# ============================= basalt =============================
+# eigen, opengv and sophus are found with basalt
+# needed before the other so eigen3.4 is found in basalt/thirdparty/basalt-headers/thirdparty/eigen
+# instead of local eigen install which is not necessary 3.4
+add_subdirectory(third_party/basalt EXCLUDE_FROM_ALL)
+# ============================= basalt =============================
 find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(OpenCV 4 REQUIRED)
-# find_package(opengv REQUIRED)
 find_package(SuiteSparse)
 find_package(Ceres REQUIRED)
 
@@ -57,10 +61,6 @@ endif (SUITESPARSE_FOUND)
 link_directories(${SUITESPARSE_LIBRARY_DIR_HINTS})
 # ============================= suitesparse =============================
 
-# ============================= basalt =============================
-add_subdirectory(third_party/basalt)
-# ============================= basalt =============================
-
 enable_testing()
 
 include_directories(
@@ -92,7 +92,7 @@ set( THIRD_PARTY_LIBS
     -lboost_system
     opengv
     basalt
-    Ceres::ceres
+    ${Ceres_LIBRARIES}
 )
 
 # set file lists
