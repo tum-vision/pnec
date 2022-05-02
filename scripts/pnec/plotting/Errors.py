@@ -11,7 +11,6 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 from math import pi
-import seaborn as sns
 from datetime import datetime
 from pnec.plotting.FigureSize import FigureSize
 from typing import Dict, List

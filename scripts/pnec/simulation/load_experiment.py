@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import sophus as sp
 from scipy.spatial.transform import Rotation as R
-from pnec.common import unscented_transform
+from pnec.math import unscented_transform
 
 
 def load_problem(path: Path, omnidirectional: bool, problem_num: int, load_prediction: bool = False, prediction_path: Path = None):

@@ -6,8 +6,6 @@
 # Copyright (c) 2022, Dominik Muhle.
 # All rights reserved.
 
-import imp
-from xml.etree.ElementInclude import include
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns

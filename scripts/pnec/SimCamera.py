@@ -11,7 +11,7 @@ import sophus as sp
 from scipy.stats import multivariate_normal
 from typing import List
 
-from pnec_common.helper import projection_jacobian
+from pnec.math import projection_jacobian
 
 
 class SimCamera:

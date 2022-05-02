@@ -7,7 +7,6 @@
 # All rights reserved.
 
 import numpy as np
-from pnec.metrics.rmse import rmse
 
 
 def r_t(poses):

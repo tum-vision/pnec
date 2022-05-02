@@ -7,8 +7,6 @@
 # All rights reserved.
 
 import numpy as np
-from numpy.lib.function_base import angle
-
 
 def l1_error(poses_gt: np.ndarray, poses_est: np.ndarray, distance):
     poses_gt_1 = np.transpose(poses_gt[:-distance, :, :], (0, 2, 1))

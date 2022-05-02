@@ -10,8 +10,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 import sophus as sp
-from pnec_common.helper import rotation_between_points
-
+from pnec.math import rotation_between_points
 
 def Plane(normal: np.ndarray, center: np.ndarray, width: float = 1.0, height: float = 1.0, color: str = 'k', alpha: float = 0.5) -> Poly3DCollection:
     # Creates a box object for a camera pose

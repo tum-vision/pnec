@@ -8,7 +8,7 @@
 
 import numpy as np
 import sophus as sp
-from pnec_common.helper import get_cov_ellipsoid
+from pnec.helper import get_cov_ellipsoid
 
 
 def Covariance3D(ax, covariance: np.ndarray, mu: np.ndarray, camera_pose: sp.SE3 = sp.SE3(), color: str = 'k', alpha: float = 1.0):
