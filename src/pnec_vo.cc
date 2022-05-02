@@ -58,7 +58,6 @@
 #include "view_graph.h"
 
 int main(int argc, const char *argv[]) {
-  std::cout << "Hello" << std::endl;
   // TODO: Check Frame2Frame
   // TODO: Update ORBExtractor
   // TODO: Compile Options for ORB/KLT
