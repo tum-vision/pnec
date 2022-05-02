@@ -8,6 +8,7 @@
         "config.optical_flow_epipolar_error": 0.001,
         "config.optical_flow_levels": 4,
         "config.optical_flow_skip_frames": 1,
+        "config.vio_linearization_type": "ABS_QR",
         "config.vio_max_states": 3,
         "config.vio_max_kfs": 7,
         "config.vio_min_frames_after_kf": 1,

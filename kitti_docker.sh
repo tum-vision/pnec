@@ -7,6 +7,7 @@ done
 : "${sequence:="04"}"
 dataset_path="/home/sequences"
 results_path="/home/results"
+no_skip="true"
 
 tracking_config_path="/app/pnec/data/tracking/KITTI"
 tracking_calib_path="/app/pnec/third_party/basalt/data/kitti_calib.json"
@@ -15,7 +16,7 @@ pnec_config="${config_path}/test_config.yaml"
 
 
 tracking_path="${tracking_config_path}/${sequence}.json"
-images_path="${dataset_path}/${sequence}/image_2"
+images_path="${dataset_path}/${sequence}/image_0"
 timestamp_path="${dataset_path}/${sequence}/times.txt"
 gt_path="${dataset_path}/${sequence}/${sequence}.txt"
 gt=""
