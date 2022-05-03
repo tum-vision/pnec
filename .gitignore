@@ -1,0 +1,10 @@
+.cache/
+.vscode/
+.idea/
+*.pyc
+*.fig
+*build/
+*.ipynb_checkpoints/
+
+third_party/opengv/
+venv/
