@@ -133,5 +133,51 @@ void BaseFrame::PlotFeatures() {
   cv::imshow("EllipseDemo", image);
   cv::waitKey(0);
 }
+
+bool valid_covariance(Eigen::Matrix2d covariance) {
+  if (covariance.trace() > 1.0e2) {
+    return false;
+  }
+  return true;
+}
+
+void BaseFrame::SaveInlierPatches(const std::vector<int> &inlier_kp_idx, size_t &counter, std::string results_dir) {
+  const cv::Mat image = getImage();
+
+  std::ofstream outfile_cov;
+  std::ofstream outfile_hessian;
+
+  outfile_cov.open(results_dir + "covariances.txt", std::ios_base::app);
+  outfile_hessian.open(results_dir + "hessians.txt", std::ios_base::app);
+
+  const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", "\n");
+
+  for (const auto &idx: inlier_kp_idx) {
+    cv::KeyPoint keypoint = keypoints_[idx];
+
+    int width = 6;
+    if ((keypoint.pt.x - width) > 0 && (keypoint.pt.x + width) < (image.size().width - 1) && (keypoint.pt.y - width) > 0 && (keypoint.pt.y + width) < (image.size().height - 1)) {
+      Eigen::Matrix2d covariance = covariances_[idx];
+      Eigen::Matrix3d hessian = hessians_[idx];
+
+      if (!valid_covariance(covariance)) {
+        std::cout << "found invalid covariance" << std::endl;
+        continue;
+      }
+
+      cv::Mat patch = image(cv::Range(keypoint.pt.y - width, keypoint.pt.y + width), cv::Range(keypoint.pt.x - width, keypoint.pt.x + width));
+
+      cv::imwrite(results_dir + std::to_string(counter++) + ".png", patch);
+      outfile_cov << covariance.format(CSVFormat);
+      outfile_hessian << hessian.format(CSVFormat);
+    }
+    else {
+      std::cout << idx << " out of image range" << std::endl;
+    }
+  }
+  outfile_cov.close();
+  outfile_hessian.close();
+  // PlotFeatures();
+}
 } // namespace frames
 } // namespace pnec

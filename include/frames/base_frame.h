@@ -81,6 +81,8 @@ public:
 
   void PlotFeatures();
 
+  void SaveInlierPatches(const std::vector<int> &inlier_kp_idx,size_t &counter, std::string results_folder);
+
 protected:
   void undistortKeypoints();
 
@@ -96,6 +98,7 @@ protected:
 
   std::vector<cv::KeyPoint> undistorted_keypoints_;
   std::vector<Eigen::Matrix2d> covariances_;
+  std::vector<Eigen::Matrix3d> hessians_;
 
   // After the Unscented Transform
   std::vector<Eigen::Matrix3d> projected_covariances_;

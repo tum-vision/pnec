@@ -137,6 +137,48 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   return true;
 }
 
+bool FrameProcessing::ProcessUncertaintyExtraction(pnec::frames::BaseFrame::Ptr host_frame, pnec::frames::BaseFrame::Ptr target_frame, Sophus::SE3d init_pose,
+                                   std::string results_folder, bool extract_host) {
+  const int skip = 0;
+
+  const int m = 1 + view_graph_->GraphSize();
+
+  bool skipping_frame;
+  pnec::FeatureMatches matches =
+      matcher_->FindMatches(host_frame, target_frame, skipping_frame);
+  std::cout << "Found " << matches.size() << " matches" << std::endl;
+
+  std::vector<int> inliers;
+
+  std::cout << "start aligning" << std::endl;
+  pnec::common::FrameTiming dummy_timing(0);
+  Sophus::SE3d rel_pose = f2f_pose_estimation_->Align(
+      host_frame, target_frame, matches, init_pose, inliers, dummy_timing, false,
+      results_folder + "ablation/");
+  std::cout << "Finished aligning" << std::endl;
+  std::cout << "Found " << inliers.size() << " inliers." << std::endl;
+
+  // Pass the inliers to the prev_frame, to extract patches and covariances
+  std::vector<int> inlier_kp_idx;
+  for (const auto& inlier: inliers) {
+    cv::DMatch match = matches[inlier];
+    if (extract_host) {
+      inlier_kp_idx.push_back(match.queryIdx);
+    } else {
+      inlier_kp_idx.push_back(match.trainIdx);
+    }
+  }
+  std::cout << "Saving " << inlier_kp_idx.size() << " inlier patches" << std::endl;
+  if (extract_host) {
+    host_frame->SaveInlierPatches(inlier_kp_idx, extraction_counter_, results_folder);
+  } else {
+    target_frame->SaveInlierPatches(inlier_kp_idx, extraction_counter_, results_folder);
+  }
+  std::cout << "Saved Patches." << std::endl;
+
+  return true;
+}
+
 Sophus::SO3d
 FrameProcessing::PrevRelRotation(pnec::odometry::View::Ptr prev_view,
                                  int prev_view_idx) {

@@ -56,6 +56,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace basalt {
 
+
+template <typename Map1, typename Map2>
+bool key_compare (Map1 const &lhs, Map2 const &rhs) {
+    return lhs.size() == rhs.size()
+        && std::equal(lhs.begin(), lhs.end(), rhs.begin(), 
+                      [] (auto a, auto b) { return a.first == b.first; });
+}
+
 template <typename Scalar, template <typename> typename Pattern>
 class KLTPatchOpticalFlow : public OpticalFlowBase {
 public:
@@ -115,10 +123,9 @@ public:
       t_ns = curr_t_ns;
 
       transforms.reset(new OpticalFlowResult);
-      std::cout << /*calib.intrinsics.size()*/ 1 << std::endl;
+      // std::cout << /*calib.intrinsics.size()*/ 1 << std::endl;
       transforms->observations.resize(/*calib.intrinsics.size()*/ 1);
       transforms->t_ns = t_ns;
-      covariances.resize(1);
 
       pyramid.reset(new std::vector<basalt::ManagedImagePyr<u_int16_t>>);
       pyramid->resize(/*calib.intrinsics.size()*/ 1);
@@ -131,6 +138,24 @@ public:
 
       addPoints();
       filterPoints();
+
+      tbb::concurrent_unordered_map<KeypointId, Matrix2, std::hash<KeypointId>>
+        result_cov;
+      tbb::concurrent_unordered_map<KeypointId, Matrix3, std::hash<KeypointId>>
+        result_hessian;
+      for (const auto &kv : transforms->observations[0]) {
+        KeypointId id = kv.first;
+        const Eigen::aligned_vector<PatchT> &patch_vec = patches.at(id);
+        result_cov[id] = (patch_vec[min_level].Cov / 10.0);
+        result_hessian[id] = patch_vec[min_level].H_se2 * 10.0;
+      }
+
+      covariances.clear();
+      hessians.clear();
+
+      covariances.insert(result_cov.begin(), result_cov.end());
+      hessians.insert(result_hessian.begin(), result_hessian.end());
+
     } else {
       t_ns = curr_t_ns;
 
@@ -148,11 +173,16 @@ public:
       new_transforms->observations.resize(new_img_vec->img_data.size());
       new_transforms->t_ns = t_ns;
 
+      covariances.clear();
+      hessians.clear();
+      
+      std::cout << "Tracking patches" << std::endl;
       for (size_t i = 0; i < /*calib.intrinsics.size()*/ 1; i++) {
         trackPoints(old_pyramid->at(i), pyramid->at(i),
                     transforms->observations[i],
-                    new_transforms->observations[i], covariances[i]);
+                    new_transforms->observations[i], covariances, hessians);
       }
+      std::cout << "Finished Tracking" << std::endl;
 
       transforms = new_transforms;
       n_tracked_points = transforms->observations[0].size();
@@ -160,8 +190,8 @@ public:
                 << " patches from previous frame." << std::endl;
       transforms->input_images = new_img_vec;
 
-      addPoints();
-      filterPoints();
+      // addPoints();
+      // filterPoints();
     }
     frame_counter++;
     return transforms;
@@ -175,7 +205,7 @@ public:
       const Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>
           &transform_map_1,
       Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f> &transform_map_2,
-      Eigen::aligned_map<KeypointId, Matrix2> &covariance_map) {
+      Eigen::aligned_map<KeypointId, Matrix2> &covariance_map, Eigen::aligned_map<KeypointId, Matrix3> &hessian_map) {
     size_t num_points = transform_map_1.size();
 
     std::vector<KeypointId> ids;
@@ -194,6 +224,8 @@ public:
         result;
     tbb::concurrent_unordered_map<KeypointId, Matrix2, std::hash<KeypointId>>
         result_cov;
+    tbb::concurrent_unordered_map<KeypointId, Matrix3, std::hash<KeypointId>>
+        result_hessian;
 
     auto compute_func = [&](const tbb::blocked_range<size_t> &range) {
       for (size_t r = range.begin(); r != range.end(); ++r) {
@@ -204,132 +236,61 @@ public:
 
         const Eigen::aligned_vector<PatchT> &patch_vec = patches.at(id);
 
-        bool valid = trackPoint(pyr_2, patch_vec, transform_2, id, 0);
+        bool valid = trackPoint(pyr_2, patch_vec, transform_2);
 
         if (valid) {
-          // forward_tracking[r] = 1;
           Eigen::AffineCompact2f transform_1_recovered = transform_2;
-          valid = trackPoint(pyr_1, patch_vec, transform_1_recovered, id, 1);
+
+          valid = trackPoint(pyr_1, patch_vec, transform_1_recovered);
 
           if (valid) {
-            // backward_tracking[r] = 1;
-            Scalar dist2;
-            if (use_mahalanobis_) {
-              dist2 = (transform_1.translation() -
-                       transform_1_recovered.translation())
-                          .transpose() *
-                      transform_1.rotation() *
-                      patch_vec[min_level].Cov.inverse() *
-                      transform_1.rotation().transpose() *
-                      (transform_1.translation() -
-                       transform_1_recovered.translation());
-            } else {
-              dist2 = (transform_1.translation() -
+            Scalar dist2 = (transform_1.translation() -
                        transform_1_recovered.translation())
                           .squaredNorm();
-            }
 
             if (dist2 < config.optical_flow_max_recovered_dist2) {
-              // distance_tracking[r] = 1;
               result[id] = transform_2;
-              if (numerical_cov_) {
-                typename PatchT::VectorP res;
-                bool valid_res;
-                PatchT dp = patch_vec[min_level];
-                typename PatchT::Matrix2P transformed_pat =
-                    transform_2.linear().matrix() * PatchT::pattern2;
-                transformed_pat.colwise() += transform_2.translation();
-                typename PatchT::Matrix2P offset_transformed_pat;
-
-                valid_res =
-                    dp.residual(pyr_2.lvl(min_level), transformed_pat, res);
-                Scalar e_0 = res.mean();
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(1.0, 0.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_x = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(-1.0, 0.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_x = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(0.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(0.0, -1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(1.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_x_pos_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(1.0, -1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_x_neg_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(-1.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_x_pos_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(-1.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_x_neg_y = res.transpose() * res;
-
-                Matrix2 H;
-                H(0, 0) = e_pos_x - 2 * e_0 + e_neg_x;
-                H(1, 0) = (e_pos_x_pos_y - e_pos_x_neg_y - e_neg_x_pos_y +
-                           e_neg_x_neg_y) /
-                          4.0;
-                H(0, 1) = H(1, 0);
-                H(1, 1) = e_pos_y - 2 * e_0 + e_neg_y;
-                result_cov[id] = H.inverse() * 52.0;
-              } else {
-                result_cov[id] = transform_2.rotation() *
-                                 (patch_vec[min_level].Cov / 10.0) *
-                                 transform_2.rotation()
-                                     .transpose(); // factor for trace norming
-              }
-            } else {
-              // remove id from patches map
-              valid = false;
+              result_cov[id] = transform_2.rotation() *
+                                (patch_vec[min_level].Cov / 10.0) *
+                                transform_2.rotation()
+                                    .transpose(); // factor for trace norming
+              result_hessian[id] = patch_vec[min_level].H_se2 * 10.0;
             }
           }
-        }
-
-        // remove id from patches to save memory footprint
-        if (!valid) {
-          deleteKeypoints.push_back(id);
         }
       }
     };
 
     tbb::blocked_range<size_t> range(0, num_points);
 
+    std::cout << "Track parallel" << std::endl;
     tbb::parallel_for(range, compute_func);
+    std::cout << "Finished tracking parallel" << std::endl;
     // compute_func(range);
 
     transform_map_2.clear();
     transform_map_2.insert(result.begin(), result.end());
-    if (covariance_map.size() != 0) {
-      covariance_map.clear();
-    }
+    std::cout << transform_map_2.size();
+
+    covariance_map.clear();
     covariance_map.insert(result_cov.begin(), result_cov.end());
+    std::cout << " " << covariance_map.size();
+    
+    hessian_map.clear();
+    hessian_map.insert(result_hessian.begin(), result_hessian.end());
+    std::cout << " " << hessian_map.size() << std::endl;
+
+    if (!key_compare(transform_map_2, covariance_map) || !key_compare(transform_map_2, hessian_map)) {
+      std::cout << "Something wrong" << std::endl;
+    } else {
+      std::cout << "Everything is fine" << std::endl;
+    }
+
   }
 
   inline bool trackPoint(const basalt::ManagedImagePyr<uint16_t> &pyr,
                          const Eigen::aligned_vector<PatchT> &patch_vec,
-                         Eigen::AffineCompact2f &transform, KeypointId id,
-                         int backward) const {
+                         Eigen::AffineCompact2f &transform) const {
     bool patch_valid = true;
 
     for (int level = config.optical_flow_levels;
@@ -340,7 +301,7 @@ public:
 
       // Perform tracking on current level
       patch_valid &= trackPointAtLevel(pyr.lvl(level), patch_vec[level],
-                                       transform, id, scale, backward);
+                                       transform, scale);
 
       transform.translation() *= scale;
     }
@@ -350,9 +311,7 @@ public:
 
   inline bool trackPointAtLevel(const Image<const u_int16_t> &img_2,
                                 const PatchT &dp,
-                                Eigen::AffineCompact2f &transform,
-                                KeypointId id, Scalar scale,
-                                int backward) const {
+                                Eigen::AffineCompact2f &transform, Scalar scale) const {
     bool patch_valid = true;
 
     for (int iteration = 0;
@@ -422,7 +381,7 @@ public:
 
     if (/*calib.intrinsics.size()*/ 1 > 1) {
       trackPoints(pyramid->at(0), pyramid->at(1), new_poses0, new_poses1,
-                  covariances[0]);
+                  covariances, hessians);
 
       for (const auto &kv : new_poses1) {
         transforms->observations.at(1).emplace(kv);
@@ -473,8 +432,12 @@ public:
     }
   }
 
-  std::vector<Eigen::aligned_map<KeypointId, Matrix2>> Covariances() const {
+  Eigen::aligned_map<KeypointId, Matrix2> Covariances() const {
     return covariances;
+  }
+
+  Eigen::aligned_map<KeypointId, Matrix3> Hessians() const {
+    return hessians;
   }
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -502,7 +465,8 @@ private:
       patches;
 
   OpticalFlowResult::Ptr transforms;
-  std::vector<Eigen::aligned_map<KeypointId, Matrix2>> covariances;
+  Eigen::aligned_map<KeypointId, Matrix2> covariances;
+  Eigen::aligned_map<KeypointId, Matrix3> hessians;
 
   std::shared_ptr<std::vector<basalt::ManagedImagePyr<u_int16_t>>> old_pyramid,
       pyramid;

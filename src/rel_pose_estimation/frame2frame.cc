@@ -119,9 +119,12 @@ Sophus::SE3d Frame2Frame::PNECAlign(
     const std::vector<Eigen::Matrix3d> &projected_covs,
     Sophus::SE3d prev_rel_pose, std::vector<int> &inliers,
     pnec::common::FrameTiming &frame_timing, std::string ablation_folder) {
+  options_.use_nec_ = true;
+  options_.use_ceres_ = false;
   pnec::rel_pose_estimation::PNEC pnec(options_);
+  
   Sophus::SE3d rel_pose =
-      pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, frame_timing);
+      pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, inliers, frame_timing);
 
   if (ablation_folder != "") {
     pnec::out::SavePose(ablation_folder, "PNEC", curr_timestamp_, rel_pose);

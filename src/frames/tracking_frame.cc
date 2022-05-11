@@ -60,14 +60,25 @@ void TrackingFrame::FindFeatures(pnec::common::FrameTiming &frame_timing) {
 
   pnec::converter::KeypointsFromOpticalFlow(result, keypoints_, keypoint_ids_);
 
+ 
   auto result_cov = tracking_.Covariances();
-  if (result_cov[0].size() != 0) {
-    for (const auto &covariance : result_cov[0]) {
+  auto result_hessian = tracking_.Hessians();
+
+  if (result_cov.size() != 0) {
+    for (const auto &covariance : result_cov) {
       covariances_.push_back(covariance.second.cast<double>());
     }
   }
+  if (result_hessian.size() != 0) {
+    for (const auto &hessian : result_hessian) {
+      hessians_.push_back(hessian.second.cast<double>());
+    }
+  }
+  std::cout << "extracted " << std::endl << keypoints_.size() << " keypoints" << 
+  std::endl << covariances_.size() << " covariances" << std::endl << 
+  hessians_.size() << " hessians" << std::endl;
 
-  tracking_.DeleteOldKeypoints();
+  // tracking_.DeleteOldKeypoints();
 }
 } // namespace frames
 } // namespace pnec
