@@ -48,63 +48,70 @@
 
 #include "camera.h"
 
-namespace pnec {
-namespace frames {
-class BaseFrame {
+namespace pnec
+{
+  namespace frames
+  {
+    class BaseFrame
+    {
 
-public:
-  using Ptr = std::shared_ptr<BaseFrame>;
-  BaseFrame(int id, double timestamp, const std::string path)
-      : id_(id), timestamp_{timestamp}, path_(path) {}
+    public:
+      using Ptr = std::shared_ptr<BaseFrame>;
+      BaseFrame(int id, double timestamp, const std::string path)
+          : id_(id), timestamp_{timestamp}, path_(path) {}
 
-  ~BaseFrame() { std::cout << "Getting rid of frame " << id_ << std::endl; }
+      ~BaseFrame() { std::cout << "Getting rid of frame " << id_ << std::endl; }
 
-  std::vector<cv::KeyPoint> &keypoints() { return keypoints_; }
-  std::vector<uint32_t> &keypoint_ids() { return keypoint_ids_; }
-  double Timestamp() { return timestamp_; }
+      std::vector<cv::KeyPoint> &keypoints() { return keypoints_; }
+      std::vector<uint32_t> &keypoint_ids() { return keypoint_ids_; }
+      double Timestamp() { return timestamp_; }
 
-  std::vector<cv::KeyPoint> &undistortedKeypoints() {
-    return undistorted_keypoints_;
-  }
-  std::vector<Eigen::Matrix2d> &covariances() { return covariances_; }
+      std::vector<cv::KeyPoint> &undistortedKeypoints()
+      {
+        return undistorted_keypoints_;
+      }
+      std::vector<Eigen::Matrix2d> &covariances() { return covariances_; }
 
-  std::vector<Eigen::Vector3d> &ProjectedPoints() { return projected_points_; }
-  std::vector<Eigen::Matrix3d> &ProjectedCovariances() {
-    return projected_covariances_;
-  }
+      std::vector<Eigen::Vector3d> &ProjectedPoints() { return projected_points_; }
+      std::vector<Eigen::Matrix3d> &ProjectedCovariances()
+      {
+        return projected_covariances_;
+      }
 
-  int id() const { return id_; }
+      int id() const { return id_; }
 
-  cv::Mat getImage();
+      cv::Mat getImage();
 
-  std::string getPath() const { return path_; }
+      std::string getPath() const { return path_; }
 
-  void PlotFeatures();
+      void PlotFeatures();
 
-  void SaveInlierPatches(const std::vector<int> &inlier_kp_idx,size_t &counter, std::string results_folder);
+      void SaveInlierPatches(const std::vector<int> &inlier_kp_idx, size_t &counter, std::string results_folder);
 
-protected:
-  void undistortKeypoints();
+      void SaveInlierPatchesStructured(const std::vector<int> &inlier_kp_idx, size_t &counter, std::string results_dir, const std::vector<cv::KeyPoint> &host_keypoints, const std::vector<cv::KeyPoint> &target_keypoints);
 
-  void UnscentedTransform();
+    protected:
+      void undistortKeypoints();
 
-  const int id_;
-  const double timestamp_;
-  const std::string path_;
+      void UnscentedTransform();
 
-  // Before the unscented Transform
-  std::vector<cv::KeyPoint> keypoints_;
-  std::vector<uint32_t> keypoint_ids_;
+      const int id_;
+      const double timestamp_;
+      const std::string path_;
 
-  std::vector<cv::KeyPoint> undistorted_keypoints_;
-  std::vector<Eigen::Matrix2d> covariances_;
-  std::vector<Eigen::Matrix3d> hessians_;
+      // Before the unscented Transform
+      std::vector<cv::KeyPoint> keypoints_;
+      std::vector<uint32_t> keypoint_ids_;
 
-  // After the Unscented Transform
-  std::vector<Eigen::Matrix3d> projected_covariances_;
-  std::vector<Eigen::Vector3d> projected_points_;
-};
-} // namespace frames
+      std::vector<cv::KeyPoint> undistorted_keypoints_;
+      std::vector<Eigen::Matrix2d> covariances_;
+      std::vector<Eigen::Matrix3d> hessians_;
+
+      // After the Unscented Transform
+      std::vector<Eigen::Matrix3d> projected_covariances_;
+      std::vector<Eigen::Vector3d> projected_points_;
+    };
+  } // namespace frames
 } // namespace pnec
 
 #endif // FRAMES_BASE_FRAME_H_

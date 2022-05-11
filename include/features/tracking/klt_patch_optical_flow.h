@@ -190,8 +190,8 @@ public:
                 << " patches from previous frame." << std::endl;
       transforms->input_images = new_img_vec;
 
-      // addPoints();
-      // filterPoints();
+      addPoints();
+      filterPoints();
     }
     frame_counter++;
     return transforms;

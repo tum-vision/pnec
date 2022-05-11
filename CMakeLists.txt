@@ -122,6 +122,11 @@ if (SIMULATION_FILE)
     list(REMOVE_ITEM ALL_LIBRARY_SRCS ${SIMULATION_FILE})
 endif()
 
+file(GLOB_RECURSE SIMULATION_FILE "src/uncertainty_extraction_vo.cc")
+if (SIMULATION_FILE)
+    list(REMOVE_ITEM ALL_LIBRARY_SRCS ${SIMULATION_FILE})
+endif()
+
 add_library(${PROJECT_NAME} STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
 target_link_libraries(${PROJECT_NAME} ${THIRD_PARTY_LIBS} opengv)
 
@@ -130,6 +135,9 @@ target_link_libraries(pnec_vo ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})
 
 add_executable(uncertainty_extraction src/uncertainty_extraction.cc ${THIRD_PARTY_FILES})
 target_link_libraries(uncertainty_extraction ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})
+
+add_executable(uncertainty_extraction_vo src/uncertainty_extraction_vo.cc ${THIRD_PARTY_FILES})
+target_link_libraries(uncertainty_extraction_vo ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})
 
 add_executable(create_experiments src/create_sim_experiments.cc ${THIRD_PARTY_FILES})
 target_link_libraries(create_experiments ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})

@@ -74,6 +74,9 @@ public:
   bool ProcessUncertaintyExtraction(pnec::frames::BaseFrame::Ptr host_frame, pnec::frames::BaseFrame::Ptr target_frame, Sophus::SE3d init_pose,
     std::string results_folder, bool extract_host = true);
 
+  bool ProcessUncertaintyExtractionVO(pnec::frames::BaseFrame::Ptr frame, Sophus::SE3d init_pose,
+    std::string results_folder, bool save_uncertainty);
+
 private:
   Sophus::SO3d PrevRelRotation(pnec::odometry::View::Ptr prev_view,
                                int prev_view_idx);

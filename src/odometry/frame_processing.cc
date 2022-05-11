@@ -179,6 +179,67 @@ bool FrameProcessing::ProcessUncertaintyExtraction(pnec::frames::BaseFrame::Ptr 
   return true;
 }
 
+bool FrameProcessing::ProcessUncertaintyExtractionVO(pnec::frames::BaseFrame::Ptr frame, Sophus::SE3d init_pose,
+                                   std::string results_folder, bool save_uncertainty) {
+ // Create View
+  pnec::odometry::View::Ptr curr_view =
+      std::make_shared<pnec::odometry::View>(frame);
+
+  const int m = 1 + view_graph_->GraphSize();
+
+  // no pose estimation for the first frame
+  std::cout << m << std::endl;
+  if (m <= 2) {
+    std::cout << "No pose estimation for the first frame" << std::endl;
+    view_graph_->AddView(curr_view);
+    return true;
+  }
+
+  pnec::frames::BaseFrame::Ptr curr_frame = curr_view->Frame();
+
+  const int curr_view_idx = m - 1;
+  int prev_view_idx = curr_view_idx - 2;
+
+  int count_connections = 0;
+
+  pnec::odometry::View::Ptr prev_view;
+  view_graph_->GetViewByPos(prev_view_idx, prev_view);
+  pnec::frames::BaseFrame::Ptr prev_frame = prev_view->Frame();
+  std::cout << prev_frame->id() << std::endl;
+  std::cout << curr_frame->id() << std::endl;
+
+  bool skipping_frame;
+  pnec::FeatureMatches matches =
+      matcher_->FindMatches(prev_frame, curr_frame, skipping_frame);
+
+  std::vector<int> inliers;
+
+  pnec::common::FrameTiming dummy_timing(0);
+  Sophus::SE3d rel_pose = f2f_pose_estimation_->Align(
+      prev_frame, curr_frame, matches, init_pose, inliers, dummy_timing, false,
+      results_folder + "ablation/");
+
+  if (save_uncertainty) {
+    // Pass the inliers to the prev_frame, to extract patches and covariances
+    std::vector<int> inlier_kp_idx;
+    std::vector<cv::KeyPoint> host_keypoints;
+    std::vector<cv::KeyPoint> target_keypoints;
+
+    for (const auto& inlier: inliers) {
+      cv::DMatch match = matches[inlier];
+      inlier_kp_idx.push_back(match.trainIdx);
+      host_keypoints.push_back(prev_frame->undistortedKeypoints()[match.queryIdx]);
+      target_keypoints.push_back(curr_frame->undistortedKeypoints()[match.trainIdx]);
+    }
+
+    std::cout << "Saving " << inlier_kp_idx.size() << " inlier patches" << std::endl;
+    curr_frame->SaveInlierPatchesStructured(inlier_kp_idx, extraction_counter_, results_folder, host_keypoints, target_keypoints);
+    std::cout << "Saved Patches." << std::endl;
+  }
+
+  return true;
+}
+
 Sophus::SO3d
 FrameProcessing::PrevRelRotation(pnec::odometry::View::Ptr prev_view,
                                  int prev_view_idx) {
