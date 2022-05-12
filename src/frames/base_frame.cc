@@ -43,44 +43,56 @@
 
 #include "camera.h"
 #include "common.h"
+#include "keypoints.h"
 #include "visualization.h"
 
 namespace pnec {
 namespace frames {
-void BaseFrame::undistortKeypoints() {
-  const pnec::CameraParameters &cam_pars =
-      Camera::instance().cameraParameters();
-  const cv::Vec4d &dist_coef = cam_pars.dist_coef();
 
-  if (dist_coef(0) == 0.0) {
-    undistorted_keypoints_ = keypoints_;
-    return;
+pnec::features::KeyPoints BaseFrame::keypoints(std::vector<size_t> &ids) {
+
+  pnec::features::KeyPoints filtered_keypoints;
+  for (size_t id : ids) {
+    // pnec::features::KeyPoint keypoint =;
+    filtered_keypoints[id] = keypoints_[id];
   }
-
-  // Fill matrix with points
-  const int n = (int)keypoints_.size();
-  cv::Mat mat(n, 2, CV_64F);
-  for (int i = 0; i < n; i++) {
-    mat.at<double>(i, 0) = keypoints_[i].pt.x;
-    mat.at<double>(i, 1) = keypoints_[i].pt.y;
-  }
-
-  // undistort points
-  mat = mat.reshape(2);
-  cv::undistortPoints(mat, mat, cam_pars.intrinsic(), dist_coef, cv::Mat(),
-                      cam_pars.intrinsic());
-  mat = mat.reshape(1);
-
-  // Fill undistorted keypoint vector
-  // undistorted_keypoints_.resize(n);
-  undistorted_keypoints_.reserve(n);
-  for (int i = 0; i < n; i++) {
-    cv::KeyPoint kp = keypoints_[i];
-    kp.pt.x = mat.at<double>(i, 0);
-    kp.pt.y = mat.at<double>(i, 1);
-    undistorted_keypoints_.push_back(kp);
-  }
+  return filtered_keypoints;
 }
+
+// void BaseFrame::undistortKeypoints() {
+//   const pnec::CameraParameters &cam_pars =
+//       Camera::instance().cameraParameters();
+//   const cv::Vec4d &dist_coef = cam_pars.dist_coef();
+
+//   if (dist_coef(0) == 0.0) {
+//     undistorted_keypoints_ = keypoints_;
+//     return;
+//   }
+
+//   // Fill matrix with points
+//   const int n = (int)keypoints_.size();
+//   cv::Mat mat(n, 2, CV_64F);
+//   for (int i = 0; i < n; i++) {
+//     mat.at<double>(i, 0) = keypoints_[i].pt.x;
+//     mat.at<double>(i, 1) = keypoints_[i].pt.y;
+//   }
+
+//   // undistort points
+//   mat = mat.reshape(2);
+//   cv::undistortPoints(mat, mat, cam_pars.intrinsic(), dist_coef, cv::Mat(),
+//                       cam_pars.intrinsic());
+//   mat = mat.reshape(1);
+
+//   // Fill undistorted keypoint vector
+//   // undistorted_keypoints_.resize(n);
+//   undistorted_keypoints_.reserve(n);
+//   for (int i = 0; i < n; i++) {
+//     cv::KeyPoint kp = keypoints_[i];
+//     kp.pt.x = mat.at<double>(i, 0);
+//     kp.pt.y = mat.at<double>(i, 1);
+//     undistorted_keypoints_.push_back(kp);
+//   }
+// }
 
 cv::Mat BaseFrame::getImage() {
   cv::Mat image;
@@ -99,35 +111,36 @@ cv::Mat BaseFrame::getImage() {
   return image;
 }
 
-void BaseFrame::UnscentedTransform() {
-  Eigen::Matrix3d K;
-  cv::cv2eigen(pnec::Camera::instance().cameraParameters().intrinsic(), K);
-  projected_covariances_.clear();
-  projected_points_.clear();
-  Eigen::Matrix3d K_inv = K.inverse();
+// void BaseFrame::UnscentedTransform() {
+//   Eigen::Matrix3d K;
+//   cv::cv2eigen(pnec::Camera::instance().cameraParameters().intrinsic(), K);
+//   projected_covariances_.clear();
+//   projected_points_.clear();
+//   Eigen::Matrix3d K_inv = K.inverse();
 
-  for (int i = 0; i < undistorted_keypoints_.size(); i++) {
-    cv::KeyPoint kp = undistorted_keypoints_[i];
-    Eigen::Vector3d mu(kp.pt.x, kp.pt.y, 1.0);
+//   for (int i = 0; i < undistorted_keypoints_.size(); i++) {
+//     cv::KeyPoint kp = undistorted_keypoints_[i];
+//     Eigen::Vector3d mu(kp.pt.x, kp.pt.y, 1.0);
 
-    projected_points_.push_back((K_inv * mu).normalized());
-    if (i < covariances_.size()) {
-      Eigen::Matrix2d cov_2d = covariances_[i];
-      Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
-      cov.topLeftCorner(2, 2) = cov_2d;
-      projected_covariances_.push_back(pnec::common::UnscentedTransform(
-          mu, cov, K_inv, 1.0, pnec::common::Pinhole));
-    }
-  }
-}
+//     projected_points_.push_back((K_inv * mu).normalized());
+//     if (i < covariances_.size()) {
+//       Eigen::Matrix2d cov_2d = covariances_[i];
+//       Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
+//       cov.topLeftCorner(2, 2) = cov_2d;
+//       projected_covariances_.push_back(pnec::common::UnscentedTransform(
+//           mu, cov, K_inv, 1.0, pnec::common::Pinhole));
+//     }
+//   }
+// }
 
 void BaseFrame::PlotFeatures() {
+
   const cv::Mat image = getImage();
-  for (size_t i = 0; i < covariances_.size(); i++) {
+  for (auto const &[id, keypoint] : keypoints_) {
     cv::Mat cv_cov;
-    cv::eigen2cv(covariances_[i], cv_cov);
-    cv::RotatedRect ellipse =
-        pnec::visualization::GetErrorEllipse(2.4477, keypoints_[i].pt, cv_cov);
+    cv::eigen2cv(keypoint.img_covariance_, cv_cov);
+    cv::RotatedRect ellipse = pnec::visualization::GetErrorEllipse(
+        2.4477, pnec::features::KeyPointToCV(keypoint).pt, cv_cov);
     cv::ellipse(image, ellipse, cv::Scalar::all(255), 2);
   }
   cv::imshow("EllipseDemo", image);

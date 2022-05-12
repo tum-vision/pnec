@@ -54,6 +54,8 @@ enum NoiseFrame { Host, Target };
 
 enum CameraModel { Omnidirectional, Pinhole };
 
+Eigen::Vector2d Undistort(Eigen::Vector2d point);
+
 // Geometry
 Eigen::Matrix3d SkewFromVector(const Eigen::Vector3d &vector);
 
@@ -102,6 +104,9 @@ bool PoseFromEssentialMatrix(
     opengv::transformation_t &outModel);
 
 // unscented Transform
+Eigen::Vector3d Unproject(const Eigen::Vector2d &img_pt,
+                          const Eigen::Matrix3d &K_inv);
+
 Eigen::Matrix3d UnscentedTransform(const Eigen::Vector3d &mu,
                                    const Eigen::Matrix3d &cov,
                                    const Eigen::Matrix3d &K_inv,

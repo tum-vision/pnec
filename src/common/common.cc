@@ -42,7 +42,11 @@
 #include <numeric>
 #include <vector>
 
+#include <opencv2/core/eigen.hpp>
 #include <opengv/triangulation/methods.hpp>
+
+#include "camera.h"
+
 namespace pnec {
 namespace common {
 // Miscillaneous
@@ -57,6 +61,34 @@ bool operator<(const myPair &p1, const myPair &p2) {
   if (p1.second > p2.second)
     return true;
   return false;
+}
+
+Eigen::Vector2d Undistort(Eigen::Vector2d point) {
+  // TODO: write custom undistort function without opencv
+  const pnec::CameraParameters &cam_pars =
+      Camera::instance().cameraParameters();
+
+  const cv::Vec4d &dist_coef = cam_pars.dist_coef();
+
+  if (dist_coef(0) == 0.0) {
+    return point;
+  }
+
+  // Fill matrix with points
+  const int n = 1;
+  cv::Mat mat(n, 2, CV_64F);
+  for (int i = 0; i < n; i++) {
+    mat.at<double>(i, 0) = point[0];
+    mat.at<double>(i, 1) = point[1];
+  }
+
+  // undistort points
+  mat = mat.reshape(2);
+  cv::undistortPoints(mat, mat, cam_pars.intrinsic(), dist_coef, cv::Mat(),
+                      cam_pars.intrinsic());
+  mat = mat.reshape(1);
+
+  return Eigen::Vector2d(mat.at<double>(0, 0), mat.at<double>(0, 1));
 }
 
 // Geometry
@@ -424,6 +456,13 @@ bool PoseFromEssentialMatrix(
 }
 
 // Unscented Transform
+Eigen::Vector3d Unproject(const Eigen::Vector2d &img_pt,
+                          const Eigen::Matrix3d &K_inv) {
+  Eigen::Vector3d mu(img_pt(0), img_pt(1), 1.0);
+
+  return (K_inv * mu).normalized();
+}
+
 Eigen::Matrix3d UnscentedTransform(const Eigen::Vector3d &mu,
                                    const Eigen::Matrix3d &cov,
                                    const Eigen::Matrix3d &K_inv, double kappa,

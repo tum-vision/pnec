@@ -477,6 +477,8 @@ public:
     return covariances;
   }
 
+  OpticalFlowResult::Ptr Transforms() const { return transforms; }
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
   std::vector<KeypointId> deleteKeypoints;

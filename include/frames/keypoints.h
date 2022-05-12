@@ -33,75 +33,46 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FRAMES_BASE_FRAME_H_
-#define FRAMES_BASE_FRAME_H_
+#ifndef FRAMES_KEYPOINTS_H_
+#define FRAMES_KEYPOINTS_H_
 
-#include <cstdint>
-#include <exception>
-#include <iostream>
-#include <memory>
-#include <stdint.h>
-#include <stdio.h>
+#include <map>
+#include <vector>
 
 #include "opencv2/opencv.hpp"
 #include <Eigen/Core>
 
 #include "camera.h"
-#include "keypoints.h"
 
 namespace pnec {
-namespace frames {
-class BaseFrame {
+namespace features {
 
-public:
-  using Ptr = std::shared_ptr<BaseFrame>;
-  BaseFrame(int id, double timestamp, const std::string path)
-      : id_(id), timestamp_{timestamp}, path_(path) {}
+struct KeyPoint {
+  Eigen::Vector2d point_;
+  Eigen::Vector3d bearing_vector_;
+  Eigen::Matrix2d img_covariance_;
+  Eigen::Matrix3d bv_covariance_;
+  Eigen::Matrix3d hessian_;
 
-  ~BaseFrame() { std::cout << "Getting rid of frame " << id_ << std::endl; }
+  KeyPoint()
+      : point_(Eigen::Vector2d::Zero()),
+        bearing_vector_(Eigen::Vector3d::Zero()),
+        img_covariance_(Eigen::Matrix2d::Zero()),
+        bv_covariance_(Eigen::Matrix3d::Zero()),
+        hessian_(Eigen::Matrix3d::Zero()) {}
+  KeyPoint(Eigen::Vector2d point, Eigen::Matrix2d covariance,
+           Eigen::Matrix3d hessian = Eigen::Matrix3d::Zero());
+  ~KeyPoint() {}
 
-  pnec::features::KeyPoints &keypoints() { return keypoints_; }
-
-  pnec::features::KeyPoints keypoints(std::vector<size_t> &ids);
-
-  double Timestamp() { return timestamp_; }
-
-  // std::vector<Eigen::Vector3d> &ProjectedPoints() { return projected_points_;
-  // } std::vector<Eigen::Matrix3d> &ProjectedCovariances() {
-  //   return projected_covariances_;
-  // }
-
-  int id() const { return id_; }
-
-  cv::Mat getImage();
-
-  std::string getPath() const { return path_; }
-
-  void PlotFeatures();
-
-protected:
-  const int id_;
-  const double timestamp_;
-  const std::string path_;
-
-  pnec::features::KeyPoints keypoints_;
-
-  // void undistortKeypoints();
-
-  // void UnscentedTransform();
-
-  // // Before the unscented Transform
-  // std::vector<cv::KeyPoint> keypoints_;
-  // std::vector<uint32_t> keypoint_ids_;
-
-  // std::vector<cv::KeyPoint> undistorted_keypoints_;
-  // std::vector<Eigen::Matrix2d> covariances_;
-
-  // // After the Unscented Transform
-  // std::vector<Eigen::Matrix3d> projected_covariances_;
-  // std::vector<Eigen::Vector3d> projected_points_;
+private:
+  void Unproject();
 };
-} // namespace frames
+
+cv::KeyPoint KeyPointToCV(KeyPoint keypoint);
+
+typedef size_t KeyPointID;
+typedef std::map<KeyPointID, KeyPoint> KeyPoints;
+} // namespace features
 } // namespace pnec
 
-#endif // FRAMES_BASE_FRAME_H_
+#endif // FRAMES_KEYPOINTS_H_

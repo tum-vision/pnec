@@ -383,29 +383,38 @@ void Frame2Frame::AblationAlign(
   }
 }
 
-void Frame2Frame::GetFeatures(pnec::frames::BaseFrame::Ptr frame1,
-                              pnec::frames::BaseFrame::Ptr frame2,
+void Frame2Frame::GetFeatures(pnec::frames::BaseFrame::Ptr host_frame,
+                              pnec::frames::BaseFrame::Ptr target_frame,
                               pnec::FeatureMatches &matches,
-                              opengv::bearingVectors_t &bvs1,
-                              opengv::bearingVectors_t &bvs2,
+                              opengv::bearingVectors_t &host_bvs,
+                              opengv::bearingVectors_t &target_bvs,
                               std::vector<Eigen::Matrix3d> &proj_covs) {
-  const std::vector<Eigen::Vector3d> pts1 = frame1->ProjectedPoints();
-  const std::vector<Eigen::Vector3d> pts2 = frame2->ProjectedPoints();
-  std::vector<Eigen::Matrix3d> covs;
-  if (options_.noise_frame_ == pnec::common::Host) {
-    covs = frame1->ProjectedCovariances();
-  } else {
-    covs = frame2->ProjectedCovariances();
+  std::vector<size_t> host_matches;
+  std::vector<size_t> target_matches;
+  for (const auto &match : matches) {
+    host_matches.push_back(match.queryIdx);
+    target_matches.push_back(match.trainIdx);
+  }
+  pnec::features::KeyPoints host_keypoints =
+      host_frame->keypoints(host_matches);
+  pnec::features::KeyPoints target_keypoints =
+      target_frame->keypoints(target_matches);
+
+  std::vector<Eigen::Matrix3d> host_covs;
+  std::vector<Eigen::Matrix3d> target_covs;
+  for (auto const &[id, keypoint] : host_keypoints) {
+    host_bvs.push_back(keypoint.bearing_vector_);
+    host_covs.push_back(keypoint.bv_covariance_);
+  }
+  for (auto const &[id, keypoint] : target_keypoints) {
+    target_bvs.push_back(keypoint.bearing_vector_);
+    target_covs.push_back(keypoint.bv_covariance_);
   }
 
-  for (const auto &match : matches) {
-    bvs1.push_back(pts1[match.queryIdx]);
-    bvs2.push_back(pts2[match.trainIdx]);
-    if (options_.noise_frame_ == pnec::common::Host) {
-      proj_covs.push_back(covs[match.queryIdx]);
-    } else {
-      proj_covs.push_back(covs[match.trainIdx]);
-    }
+  if (options_.noise_frame_ == pnec::common::Host) {
+    proj_covs = host_covs;
+  } else {
+    proj_covs = target_covs;
   }
 }
 

@@ -33,31 +33,37 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef COMMON_VISUALIZATION_H_
-#define COMMON_VISUALIZATION_H_
+#include "keypoints.h"
 
-#include <string.h>
-#include <vector>
-
-#include <opencv2/opencv.hpp>
-
-#include "base_frame.h"
 #include "common.h"
+#include <opencv2/core/eigen.hpp>
 
 namespace pnec {
-namespace visualization {
-cv::RotatedRect GetErrorEllipse(double chisquare_val, cv::Point2f mean,
-                                cv::Mat covmat);
+namespace features {
+KeyPoint::KeyPoint(Eigen::Vector2d point, Eigen::Matrix2d covariance,
+                   Eigen::Matrix3d hessian)
+    : point_(point), img_covariance_(covariance), hessian_(hessian) {
+  Unproject();
+}
 
-char plotMatches(pnec::frames::BaseFrame::Ptr prev_frame,
-                 pnec::frames::BaseFrame::Ptr curr_frame,
-                 pnec::FeatureMatches &matches, std::vector<int> &inliers,
-                 std::string suffix);
+void KeyPoint::Unproject() {
+  Eigen::Matrix3d K;
+  cv::cv2eigen(pnec::Camera::instance().cameraParameters().intrinsic(), K);
+  Eigen::Matrix3d K_inv = K.inverse();
 
-// char plotCovariancess(pnec::frames::BaseFrame::Ptr curr_frame,
-//                       pnec::FeatureMatches &matches, std::vector<int>
-//                       &inliers, std::string suffix);
-} // namespace visualization
+  bearing_vector_ = pnec::common::Unproject(point_, K_inv);
+
+  Eigen::Vector3d mu(point_(0), point_(1), 1.0);
+
+  Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
+  cov.topLeftCorner(2, 2) = img_covariance_;
+  bv_covariance_ = pnec::common::UnscentedTransform(mu, cov, K_inv, 1.0,
+                                                    pnec::common::Pinhole);
+}
+
+cv::KeyPoint KeyPointToCV(KeyPoint keypoint) {
+  return cv::KeyPoint(keypoint.point_(0), keypoint.point_(1), 1.0);
+}
+
+} // namespace features
 } // namespace pnec
-
-#endif // COMMON_VISUALIZATION_H_
