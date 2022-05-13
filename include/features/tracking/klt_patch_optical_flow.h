@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <boost/log/trivial.hpp>
 #include <iostream>
 #include <thread>
 
@@ -97,7 +98,7 @@ public:
       if (patches.find(id) != patches.end()) {
         patches.erase(id);
       } else {
-        std::cout << "couldn't delete Keypoint" << std::endl;
+        BOOST_LOG_TRIVIAL(info) << "couldn't delete Keypoint with id " << id;
       }
     }
     deleteKeypoints.clear();
@@ -110,12 +111,10 @@ public:
         return transforms;
     }
 
-    int n_tracked_points = 0;
     if (t_ns < 0) {
       t_ns = curr_t_ns;
 
       transforms.reset(new OpticalFlowResult);
-      std::cout << /*calib.intrinsics.size()*/ 1 << std::endl;
       transforms->observations.resize(/*calib.intrinsics.size()*/ 1);
       transforms->t_ns = t_ns;
       covariances.resize(1);
@@ -155,13 +154,17 @@ public:
       }
 
       transforms = new_transforms;
-      n_tracked_points = transforms->observations[0].size();
-      std::cout << "Tracked " << n_tracked_points
-                << " patches from previous frame." << std::endl;
+      int num_tracked_points = transforms->observations[0].size();
       transforms->input_images = new_img_vec;
 
       addPoints();
       filterPoints();
+      int num_added_points =
+          transforms->observations[0].size() - num_tracked_points;
+
+      BOOST_LOG_TRIVIAL(debug)
+          << "Tracked " << num_tracked_points << " points and added "
+          << num_added_points << " new points.";
     }
     frame_counter++;
     return transforms;

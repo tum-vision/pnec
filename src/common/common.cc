@@ -35,6 +35,7 @@
 
 #include "common.h"
 
+#include <boost/log/trivial.hpp>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -529,9 +530,9 @@ UnscentedTransform(const std::vector<Eigen::Vector3d> &mus,
                    const Eigen::Matrix3d &K_inv, double kappa,
                    CameraModel camera_model) {
   if (mus.size() != covs.size()) {
-    std::cout << "Warning! The size of the vectors and covariances provided "
-                 "are not the same. Returning the original covariances"
-              << std::endl;
+    BOOST_LOG_TRIVIAL(warning)
+        << "The size of the vectors and covariances provided "
+           "are not the same. Returning the original covariances";
     return covs;
   }
 

@@ -37,6 +37,7 @@
 
 #include "math.h"
 #include <boost/filesystem.hpp>
+#include <boost/log/trivial.hpp>
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -94,7 +95,7 @@ Sophus::SE3d PNEC::Solve(const opengv::bearingVectors_t &bvs1,
 
   if (options_.use_nec_) {
     if (options_.use_ceres_) {
-      // std::cout << "NECCeres" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "NECCeres" << std::endl;
       return NECCeresSolver(in_bvs1, in_bvs2, ES_solution);
     } else {
       return ES_solution;
@@ -102,7 +103,7 @@ Sophus::SE3d PNEC::Solve(const opengv::bearingVectors_t &bvs1,
   } else {
     Sophus::SE3d ceres_init;
     if (options_.weighted_iterations_ > 1) {
-      // std::cout << "Weighted" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "Weighted" << std::endl;
       ceres_init =
           WeightedEigensolver(in_bvs1, in_bvs2, in_proj_covs, ES_solution);
     } else if (options_.weighted_iterations_ == 1) {
@@ -113,7 +114,7 @@ Sophus::SE3d PNEC::Solve(const opengv::bearingVectors_t &bvs1,
 
     Sophus::SE3d solution;
     if (options_.use_ceres_) {
-      // std::cout << "Ceres" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "Ceres" << std::endl;
       solution = CeresSolver(in_bvs1, in_bvs2, in_proj_covs, ceres_init);
     } else {
       solution = ceres_init;
@@ -159,7 +160,7 @@ Sophus::SE3d PNEC::Solve(const opengv::bearingVectors_t &bvs1,
   if (options_.use_nec_) {
     Sophus::SE3d solution;
     if (options_.use_ceres_) {
-      // std::cout << "NECCeres" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "NECCeres" << std::endl;
       tic = std::chrono::high_resolution_clock::now();
       solution = NECCeresSolver(in_bvs1, in_bvs2, ES_solution);
       toc = std::chrono::high_resolution_clock::now();
@@ -173,7 +174,7 @@ Sophus::SE3d PNEC::Solve(const opengv::bearingVectors_t &bvs1,
   } else {
     Sophus::SE3d ceres_init;
     if (options_.weighted_iterations_ > 1) {
-      // std::cout << "Weighted" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "Weighted" << std::endl;
       tic = std::chrono::high_resolution_clock::now();
       ceres_init =
           WeightedEigensolver(in_bvs1, in_bvs2, in_proj_covs, ES_solution);
@@ -183,7 +184,7 @@ Sophus::SE3d PNEC::Solve(const opengv::bearingVectors_t &bvs1,
       timing.avg_it_es_ = std::chrono::duration_cast<std::chrono::milliseconds>(
           (toc - tic) / options_.weighted_iterations_);
     } else if (options_.weighted_iterations_ == 1) {
-      // std::cout << "NEC" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "NEC" << std::endl;
       ceres_init = ES_solution;
       timing.it_es_ = std::chrono::milliseconds(0);
     } else {
@@ -192,7 +193,7 @@ Sophus::SE3d PNEC::Solve(const opengv::bearingVectors_t &bvs1,
     }
     Sophus::SE3d solution;
     if (options_.use_ceres_) {
-      // std::cout << "Ceres" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "Ceres" << std::endl;
       tic = std::chrono::high_resolution_clock::now();
       solution = CeresSolver(in_bvs1, in_bvs2, in_proj_covs, ceres_init);
       toc = std::chrono::high_resolution_clock::now();

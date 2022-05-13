@@ -1,11 +1,12 @@
 #include "config.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/log/trivial.hpp>
 #include <iostream>
 
 #include <basalt/calibration/calibration.hpp>
-#include <basalt/utils/vio_config.h>
 #include <basalt/serialization/headers_serialization.h>
+#include <basalt/utils/vio_config.h>
 #include <opencv2/core/core.hpp>
 
 #include <camera.h>
@@ -21,8 +22,8 @@ basalt::Calibration<double> LoadTrackingCalib(const std::string &calib_path) {
   if (os.is_open()) {
     cereal::JSONInputArchive archive(os);
     archive(tracking_calib);
-    std::cout << "Loaded camera with " << tracking_calib.intrinsics.size()
-              << " cameras" << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Loaded camera with "
+                            << tracking_calib.intrinsics.size() << " cameras";
   } else {
     std::cerr << "could not load camera calibration " << calib_path
               << std::endl;

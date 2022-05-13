@@ -34,6 +34,10 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/console.hpp>
 #include <string.h>
 
 #include "anisotropy_experiments.h"
@@ -44,7 +48,16 @@
 #include "sim_common.h"
 #include "standard_experiments.h"
 
+void log_init() {
+  boost::log::add_console_log(std::cout, boost::log::keywords::format =
+                                             "[%Severity%] %Message%");
+  boost::log::core::get()->set_filter(boost::log::trivial::severity >=
+                                      boost::log::trivial::debug);
+}
+
 int main(int argc, const char *argv[]) {
+  log_init();
+
   const cv::String keys =
       "{help h usage ?    |          | print this message    }"
       "{@base_folder      |none      | base folder name}"

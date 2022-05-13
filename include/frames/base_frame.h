@@ -36,6 +36,7 @@
 #ifndef FRAMES_BASE_FRAME_H_
 #define FRAMES_BASE_FRAME_H_
 
+#include <boost/log/trivial.hpp>
 #include <cstdint>
 #include <exception>
 #include <iostream>
@@ -58,7 +59,7 @@ public:
   BaseFrame(int id, double timestamp, const std::string path)
       : id_(id), timestamp_{timestamp}, path_(path) {}
 
-  ~BaseFrame() { std::cout << "Getting rid of frame " << id_ << std::endl; }
+  ~BaseFrame() { BOOST_LOG_TRIVIAL(debug) << "Getting rid of frame " << id_; }
 
   pnec::features::KeyPoints &keypoints() { return keypoints_; }
 

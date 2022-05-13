@@ -35,18 +35,21 @@
 
 #include "dataset_loader.h"
 
+#include <boost/log/trivial.hpp>
+
 namespace pnec {
 namespace input {
 DatasetLoader::DatasetLoader(std::string img_path, std::string im_ext,
                              std::string times_path, bool has_index,
                              double timescale) {
   if (times_path == "") {
-    std::cout << "Loading images and timestamps from\n"
-              << img_path << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Loading images and timestamps from\n"
+                            << img_path;
     LoadTogether(img_path, im_ext, timescale);
   } else {
-    std::cout << "Loading images from\n" << img_path << std::endl;
-    std::cout << "Loading timestamps from\n" << times_path << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Loading images from\n" << img_path << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Loading timestamps from\n"
+                            << times_path << std::endl;
     LoadSeperately(img_path, im_ext, times_path, has_index, timescale);
   }
 
@@ -148,7 +151,8 @@ bool LoadGroundTruth(std::string gt_path, std::vector<Sophus::SE3d> &gt_poses,
     gt_poses.push_back(Sophus::SE3d(fixed_rotation, t));
   }
   myfile.close();
-  std::cout << "loaded " << gt_poses.size() << " gt poses" << std::endl;
+  BOOST_LOG_TRIVIAL(info) << "loaded " << gt_poses.size() << " gt poses"
+                          << std::endl;
 
   for (size_t i = 0; i < gt_poses.size() - 1; i++) {
     rel_gt_poses.push_back(gt_poses[i].inverse() * gt_poses[i + 1]);
