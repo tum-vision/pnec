@@ -56,9 +56,10 @@ void TrackingFrame::FindFeatures(pnec::common::FrameTiming &frame_timing) {
   frame_timing.frame_loading_ =
       std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic);
 
-  basalt::OpticalFlowResult::Ptr result = tracking_.processFrame(id_, img_ptr);
+  basalt::PNECOpticalFlowResult::Ptr result =
+      tracking_.processFrame(id_, img_ptr);
 
-  keypoints_ = pnec::converter::KeypointsFromOpticalFlow(tracking_, true);
+  keypoints_ = pnec::converter::KeyPointsFromOpticalFlow(result, true);
 }
 } // namespace frames
 } // namespace pnec

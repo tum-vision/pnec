@@ -57,6 +57,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace basalt {
 
+struct PNECObservation {
+  PNECObservation()
+      : transform(Eigen::AffineCompact2f()), covariance(Eigen::Matrix2d()),
+        hessian(Eigen::Matrix3d()) {}
+  PNECObservation(const Eigen::AffineCompact2f &t, const Eigen::Matrix2d &cov,
+                  const Eigen::Matrix3d &h)
+      : transform(t), covariance(cov), hessian(h) {}
+  Eigen::AffineCompact2f transform;
+  Eigen::Matrix2d covariance;
+  Eigen::Matrix3d hessian;
+};
+
+struct PNECOpticalFlowResult : OpticalFlowResult {
+  using Ptr = std::shared_ptr<PNECOpticalFlowResult>;
+
+  std::vector<Eigen::aligned_map<KeypointId, PNECObservation>> observations;
+};
+
 template <typename Map1, typename Map2>
 bool key_compare(Map1 const &lhs, Map2 const &rhs) {
   return lhs.size() == rhs.size() &&
@@ -100,8 +118,8 @@ public:
 
   ~KLTPatchOpticalFlow() {}
 
-  OpticalFlowResult::Ptr processFrame(int64_t curr_t_ns,
-                                      OpticalFlowInput::Ptr &new_img_vec) {
+  PNECOpticalFlowResult::Ptr processFrame(int64_t curr_t_ns,
+                                          OpticalFlowInput::Ptr &new_img_vec) {
     for (const auto &v : new_img_vec->img_data) {
       if (!v.img.get())
         return transforms;
@@ -110,7 +128,7 @@ public:
     if (t_ns < 0) {
       t_ns = curr_t_ns;
 
-      transforms.reset(new OpticalFlowResult);
+      transforms.reset(new PNECOpticalFlowResult);
       transforms->observations.resize(/*calib.intrinsics.size()*/ 1);
       transforms->t_ns = t_ns;
 
@@ -125,24 +143,6 @@ public:
 
       addPoints();
       filterPoints();
-
-      tbb::concurrent_unordered_map<KeypointId, Matrix2, std::hash<KeypointId>>
-          result_cov;
-      tbb::concurrent_unordered_map<KeypointId, Matrix3, std::hash<KeypointId>>
-          result_hessian;
-      for (const auto &kv : transforms->observations[0]) {
-        KeypointId id = kv.first;
-        const Eigen::aligned_vector<PatchT> &patch_vec = patches.at(id);
-        result_cov[id] = (patch_vec[min_level].Cov / 10.0);
-        result_hessian[id] = patch_vec[min_level].H_se2 * 10.0;
-      }
-
-      covariances.clear();
-      hessians.clear();
-
-      covariances.insert(result_cov.begin(), result_cov.end());
-      hessians.insert(result_hessian.begin(), result_hessian.end());
-
     } else {
       t_ns = curr_t_ns;
 
@@ -155,8 +155,8 @@ public:
                                     config.optical_flow_levels);
       }
 
-      OpticalFlowResult::Ptr new_transforms;
-      new_transforms.reset(new OpticalFlowResult);
+      PNECOpticalFlowResult::Ptr new_transforms;
+      new_transforms.reset(new PNECOpticalFlowResult);
       new_transforms->observations.resize(new_img_vec->img_data.size());
       new_transforms->t_ns = t_ns;
 
@@ -167,7 +167,7 @@ public:
       for (size_t i = 0; i < /*calib.intrinsics.size()*/ 1; i++) {
         trackPoints(old_pyramid->at(i), pyramid->at(i),
                     transforms->observations[i],
-                    new_transforms->observations[i], covariances, hessians);
+                    new_transforms->observations[i]);
       }
       std::cout << "Finished Tracking" << std::endl;
 
@@ -193,11 +193,8 @@ public:
   void trackPoints(
       const basalt::ManagedImagePyr<u_int16_t> &pyr_1,
       const basalt::ManagedImagePyr<u_int16_t> &pyr_2,
-      const Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>
-          &transform_map_1,
-      Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f> &transform_map_2,
-      Eigen::aligned_map<KeypointId, Matrix2> &covariance_map,
-      Eigen::aligned_map<KeypointId, Matrix3> &hessian_map) {
+      const Eigen::aligned_map<KeypointId, PNECObservation> &transform_map_1,
+      Eigen::aligned_map<KeypointId, PNECObservation> &transform_map_2) {
     size_t num_points = transform_map_1.size();
 
     std::vector<KeypointId> ids;
@@ -208,16 +205,12 @@ public:
 
     for (const auto &kv : transform_map_1) {
       ids.push_back(kv.first);
-      init_vec.push_back(kv.second);
+      init_vec.push_back(kv.second.transform);
     }
 
-    tbb::concurrent_unordered_map<KeypointId, Eigen::AffineCompact2f,
+    tbb::concurrent_unordered_map<KeypointId, PNECObservation,
                                   std::hash<KeypointId>>
         result;
-    tbb::concurrent_unordered_map<KeypointId, Matrix2, std::hash<KeypointId>>
-        result_cov;
-    tbb::concurrent_unordered_map<KeypointId, Matrix3, std::hash<KeypointId>>
-        result_hessian;
 
     auto compute_func = [&](const tbb::blocked_range<size_t> &range) {
       for (size_t r = range.begin(); r != range.end(); ++r) {
@@ -242,12 +235,15 @@ public:
 
             valid = dist2 < config.optical_flow_max_recovered_dist2;
             if (valid) {
-              result[id] = transform_2;
-              result_cov[id] = transform_2.rotation() *
-                               (patch_vec[min_level].Cov / 10.0) *
-                               transform_2.rotation()
-                                   .transpose(); // factor for trace norming
-              result_hessian[id] = patch_vec[min_level].H_se2 * 10.0;
+              Eigen::Matrix2d covariance =
+                  (transform_2.rotation() *
+                   (patch_vec[min_level].Cov / uncertainty_scaling) *
+                   transform_2.rotation().transpose())
+                      .template cast<double>(); // factor for trace norming
+              Eigen::Matrix3d hessian =
+                  patch_vec[min_level].H_se2.template cast<double>() *
+                  uncertainty_scaling;
+              result[id] = PNECObservation(transform_2, covariance, hessian);
             }
           }
         }
@@ -270,21 +266,6 @@ public:
     transform_map_2.clear();
     transform_map_2.insert(result.begin(), result.end());
     std::cout << transform_map_2.size();
-
-    covariance_map.clear();
-    covariance_map.insert(result_cov.begin(), result_cov.end());
-    std::cout << " " << covariance_map.size();
-
-    hessian_map.clear();
-    hessian_map.insert(result_hessian.begin(), result_hessian.end());
-    std::cout << " " << hessian_map.size() << std::endl;
-
-    if (!key_compare(transform_map_2, covariance_map) ||
-        !key_compare(transform_map_2, hessian_map)) {
-      std::cout << "Something wrong" << std::endl;
-    } else {
-      std::cout << "Everything is fine" << std::endl;
-    }
   }
 
   inline bool trackPoint(const basalt::ManagedImagePyr<uint16_t> &pyr,
@@ -345,7 +326,7 @@ public:
     Eigen::aligned_vector<Eigen::Vector2d> pts0;
 
     for (const auto &kv : transforms->observations.at(0)) {
-      pts0.emplace_back(kv.second.translation().cast<double>());
+      pts0.emplace_back(kv.second.transform.translation().cast<double>());
     }
 
     KeypointsData kd;
@@ -354,8 +335,7 @@ public:
     detectKeypoints(pyramid->at(0).lvl(min_level), kd,
                     config.optical_flow_detection_grid_size, 1, pts0);
 
-    Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f> new_poses0,
-        new_poses1;
+    Eigen::aligned_map<KeypointId, PNECObservation> new_poses0, new_poses1;
 
     for (size_t i = 0; i < kd.corners.size(); i++) {
       kd.corners[i] *= scaling;
@@ -373,15 +353,20 @@ public:
       transform.setIdentity();
       transform.translation() = kd.corners[i].cast<Scalar>();
 
-      transforms->observations.at(0)[last_keypoint_id] = transform;
-      new_poses0[last_keypoint_id] = transform;
+      transforms->observations.at(0)[last_keypoint_id] = PNECObservation(
+          transform,
+          p[min_level].Cov.template cast<double>() / uncertainty_scaling,
+          p[min_level].H_se2.template cast<double>() * uncertainty_scaling);
+      new_poses0[last_keypoint_id] = PNECObservation(
+          transform,
+          p[min_level].Cov.template cast<double>() / uncertainty_scaling,
+          p[min_level].H_se2.template cast<double>() * uncertainty_scaling);
 
       last_keypoint_id++;
     }
 
     if (/*calib.intrinsics.size()*/ 1 > 1) {
-      trackPoints(pyramid->at(0), pyramid->at(1), new_poses0, new_poses1,
-                  covariances, hessians);
+      trackPoints(pyramid->at(0), pyramid->at(1), new_poses0, new_poses1);
 
       for (const auto &kv : new_poses1) {
         transforms->observations.at(1).emplace(kv);
@@ -402,8 +387,8 @@ public:
       auto it = transforms->observations.at(0).find(kv.first);
 
       if (it != transforms->observations.at(0).end()) {
-        proj0.emplace_back(it->second.translation().cast<double>());
-        proj1.emplace_back(kv.second.translation().cast<double>());
+        proj0.emplace_back(it->second.transform.translation().cast<double>());
+        proj1.emplace_back(kv.second.transform.translation().cast<double>());
         kpid.emplace_back(kv.first);
       }
     }
@@ -451,6 +436,7 @@ private:
   size_t frame_counter;
 
   int min_level = 0;
+  double uncertainty_scaling = 10.0;
 
   bool use_mahalanobis_;
 
@@ -464,7 +450,7 @@ private:
   Eigen::aligned_unordered_map<KeypointId, Eigen::aligned_vector<PatchT>>
       patches;
 
-  OpticalFlowResult::Ptr transforms;
+  PNECOpticalFlowResult::Ptr transforms;
   Eigen::aligned_map<KeypointId, Matrix2> covariances;
   Eigen::aligned_map<KeypointId, Matrix3> hessians;
 

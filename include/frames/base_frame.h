@@ -75,13 +75,13 @@ public:
 
   void PlotFeatures();
 
-  void SaveInlierPatches(const std::vector<int> &inlier_kp_idx, size_t &counter,
-                         std::string results_dir);
+  void SaveInlierPatches(const pnec::features::KeyPoints keypoints,
+                         size_t &counter, std::string results_dir);
 
-  void SaveInlierPatchesStructured(
-      const std::vector<int> &inlier_kp_idx, size_t &counter,
-      std::string results_dir, const std::vector<cv::KeyPoint> &host_keypoints,
-      const std::vector<cv::KeyPoint> &target_keypoints);
+  void
+  SaveInlierPatchesStructured(const pnec::features::KeyPoints host_keypoints,
+                              const pnec::features::KeyPoints target_keypoints,
+                              size_t &counter, std::string results_dir);
 
 protected:
   const int id_;

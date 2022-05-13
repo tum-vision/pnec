@@ -83,7 +83,7 @@ bool valid_covariance(Eigen::Matrix2d covariance) {
   return true;
 }
 
-void BaseFrame::SaveInlierPatches(const std::vector<int> &inlier_kp_idx,
+void BaseFrame::SaveInlierPatches(const pnec::features::KeyPoints keypoints,
                                   size_t &counter, std::string results_dir) {
   const cv::Mat image = getImage();
 
@@ -96,42 +96,65 @@ void BaseFrame::SaveInlierPatches(const std::vector<int> &inlier_kp_idx,
   const static Eigen::IOFormat CSVFormat(
       Eigen::FullPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", "\n");
 
-  for (const auto &idx : inlier_kp_idx) {
-    cv::KeyPoint keypoint = keypoints_[idx];
-
-    int width = 6;
-    if ((keypoint.pt.x - width) > 0 &&
-        (keypoint.pt.x + width) < (image.size().width - 1) &&
-        (keypoint.pt.y - width) > 0 &&
-        (keypoint.pt.y + width) < (image.size().height - 1)) {
-      Eigen::Matrix2d covariance = covariances_[idx];
-      Eigen::Matrix3d hessian = hessians_[idx];
-
-      if (!valid_covariance(covariance)) {
+  int width = 6;
+  for (auto const &[id, keypoint] : keypoints) {
+    cv::KeyPoint point = pnec::features::KeyPointToCV(keypoint);
+    bool in_bounds = (point.pt.x - width) > 0 &&
+                     (point.pt.x + width) < (image.size().width - 1) &&
+                     (point.pt.y - width) > 0 &&
+                     (point.pt.y + width) < (image.size().height - 1);
+    if (in_bounds) {
+      if (!valid_covariance(keypoint.img_covariance_)) {
         std::cout << "found invalid covariance" << std::endl;
         continue;
       }
-
-      cv::Mat patch =
-          image(cv::Range(keypoint.pt.y - width, keypoint.pt.y + width),
-                cv::Range(keypoint.pt.x - width, keypoint.pt.x + width));
+      cv::Mat patch = image(cv::Range(point.pt.y - width, point.pt.y + width),
+                            cv::Range(point.pt.x - width, point.pt.x + width));
 
       cv::imwrite(results_dir + std::to_string(counter++) + ".png", patch);
-      outfile_cov << covariance.format(CSVFormat);
-      outfile_hessian << hessian.format(CSVFormat);
+      outfile_cov << keypoint.img_covariance_.format(CSVFormat);
+      outfile_hessian << keypoint.hessian_.format(CSVFormat);
     } else {
-      std::cout << idx << " out of image range" << std::endl;
+      std::cout << id << " out of image range" << std::endl;
     }
   }
+
+  // for (const auto &idx : inlier_kp_idx) {
+  //   cv::KeyPoint keypoint = keypoints_[idx];
+
+  //   int width = 6;
+  //   if ((keypoint.pt.x - width) > 0 &&
+  //       (keypoint.pt.x + width) < (image.size().width - 1) &&
+  //       (keypoint.pt.y - width) > 0 &&
+  //       (keypoint.pt.y + width) < (image.size().height - 1)) {
+  //     Eigen::Matrix2d covariance = covariances_[idx];
+  //     Eigen::Matrix3d hessian = hessians_[idx];
+
+  //     if (!valid_covariance(covariance)) {
+  //       std::cout << "found invalid covariance" << std::endl;
+  //       continue;
+  //     }
+
+  //     cv::Mat patch =
+  //         image(cv::Range(keypoint.pt.y - width, keypoint.pt.y + width),
+  //               cv::Range(keypoint.pt.x - width, keypoint.pt.x + width));
+
+  //     cv::imwrite(results_dir + std::to_string(counter++) + ".png", patch);
+  //     outfile_cov << covariance.format(CSVFormat);
+  //     outfile_hessian << hessian.format(CSVFormat);
+  //   } else {
+  //     std::cout << idx << " out of image range" << std::endl;
+  //   }
+  // }
   outfile_cov.close();
   outfile_hessian.close();
   // PlotFeatures();
 }
 
 void BaseFrame::SaveInlierPatchesStructured(
-    const std::vector<int> &inlier_kp_idx, size_t &counter,
-    std::string results_dir, const std::vector<cv::KeyPoint> &host_keypoints,
-    const std::vector<cv::KeyPoint> &target_keypoints) {
+    const pnec::features::KeyPoints host_keypoints,
+    const pnec::features::KeyPoints target_keypoints, size_t &counter,
+    std::string results_dir) {
   const cv::Mat image = getImage();
 
   std::ofstream outfile_cov;
@@ -145,42 +168,40 @@ void BaseFrame::SaveInlierPatchesStructured(
   const static Eigen::IOFormat CSVFormat(
       Eigen::FullPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", "\n");
 
+  int width = 6;
   size_t curr_frame_count = 0;
-  for (const auto &idx : inlier_kp_idx) {
-    cv::KeyPoint keypoint = keypoints_[idx];
-    cv::KeyPoint host_keypoint = host_keypoints[curr_frame_count];
-    cv::KeyPoint target_keypoint = target_keypoints[curr_frame_count];
+  for (auto const &[id, host_keypoint] : host_keypoints) {
+    const auto target_keypoint = target_keypoints.at(id);
 
-    int width = 6;
-    if ((keypoint.pt.x - width) > 0 &&
-        (keypoint.pt.x + width) < (image.size().width - 1) &&
-        (keypoint.pt.y - width) > 0 &&
-        (keypoint.pt.y + width) < (image.size().height - 1)) {
-      Eigen::Matrix2d covariance = covariances_[idx];
-      Eigen::Matrix3d hessian = hessians_[idx];
+    cv::KeyPoint host_point = pnec::features::KeyPointToCV(host_keypoint);
+    cv::KeyPoint target_point = pnec::features::KeyPointToCV(target_keypoint);
+    bool in_bounds = (target_point.pt.x - width) > 0 &&
+                     (target_point.pt.x + width) < (image.size().width - 1) &&
+                     (target_point.pt.y - width) > 0 &&
+                     (target_point.pt.y + width) < (image.size().height - 1);
 
-      if (!valid_covariance(covariance)) {
+    if (in_bounds) {
+      if (!valid_covariance(target_keypoint.img_covariance_)) {
         std::cout << "found invalid covariance" << std::endl;
         continue;
       }
-
-      cv::Mat patch =
-          image(cv::Range(keypoint.pt.y - width, keypoint.pt.y + width),
-                cv::Range(keypoint.pt.x - width, keypoint.pt.x + width));
+      cv::Mat patch = image(
+          cv::Range(target_point.pt.y - width, target_point.pt.y + width),
+          cv::Range(target_point.pt.x - width, target_point.pt.x + width));
 
       std::string image_counter = std::to_string(counter++);
       cv::imwrite(results_dir + image_counter + ".png", patch);
       outfile_kp << id_ << ", " << curr_frame_count << ", " << image_counter
-                 << ", " << host_keypoint.pt.x << ", " << host_keypoint.pt.y
-                 << ", " << target_keypoint.pt.x << ", " << target_keypoint.pt.y
-                 << "\n";
+                 << ", " << host_point.pt.x << ", " << host_point.pt.y << ", "
+                 << target_point.pt.x << ", " << target_point.pt.y << "\n";
       outfile_cov << id_ << ", " << curr_frame_count << ", " << image_counter
-                  << ", " << covariance.format(CSVFormat);
+                  << ", " << target_keypoint.img_covariance_.format(CSVFormat);
       outfile_hessian << id_ << ", " << curr_frame_count << ", "
-                      << image_counter << ", " << hessian.format(CSVFormat);
+                      << image_counter << ", "
+                      << target_keypoint.hessian_.format(CSVFormat);
       curr_frame_count++;
     } else {
-      std::cout << idx << " out of image range" << std::endl;
+      std::cout << id << " out of image range" << std::endl;
     }
   }
   outfile_cov.close();
