@@ -36,8 +36,11 @@
 #ifndef COMMON_CONVERTER_H_
 #define COMMON_CONVERTER_H_
 
-#include <basalt/optical_flow/optical_flow.h>
+#include "basalt/optical_flow/optical_flow.h"
 #include <opencv2/opencv.hpp>
+
+#include "keypoints.h"
+#include "klt_patch_optical_flow.h"
 
 namespace pnec {
 namespace converter {
@@ -45,9 +48,14 @@ namespace converter {
 basalt::OpticalFlowInput::Ptr OpticalFlowFromOpenCV(const cv::Mat &image,
                                                     const int64_t timestamp);
 
-void KeypointsFromOpticalFlow(basalt::OpticalFlowResult::Ptr result,
-                              std::vector<cv::KeyPoint> &keypoints,
-                              std::vector<uint32_t> &keypoint_ids);
+// void KeypointsFromOpticalFlow(basalt::OpticalFlowResult::Ptr result,
+//                               std::vector<cv::KeyPoint> &keypoints,
+//                               std::vector<uint32_t> &keypoint_ids);
+
+pnec::features::KeyPoints KeypointsFromOpticalFlow(
+    basalt::KLTPatchOpticalFlow<float, basalt::Pattern52> &tracking_,
+    bool undistort = true);
+
 } // namespace converter
 } // namespace pnec
 

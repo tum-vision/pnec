@@ -33,31 +33,46 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef COMMON_VISUALIZATION_H_
-#define COMMON_VISUALIZATION_H_
+#ifndef FRAMES_KEYPOINTS_H_
+#define FRAMES_KEYPOINTS_H_
 
-#include <string.h>
+#include <map>
 #include <vector>
 
-#include <opencv2/opencv.hpp>
+#include "opencv2/opencv.hpp"
+#include <Eigen/Core>
 
-#include "base_frame.h"
-#include "common.h"
+#include "camera.h"
 
 namespace pnec {
-namespace visualization {
-cv::RotatedRect GetErrorEllipse(double chisquare_val, cv::Point2f mean,
-                                cv::Mat covmat);
+namespace features {
 
-char plotMatches(pnec::frames::BaseFrame::Ptr prev_frame,
-                 pnec::frames::BaseFrame::Ptr curr_frame,
-                 pnec::FeatureMatches &matches, std::vector<int> &inliers,
-                 std::string suffix);
+struct KeyPoint {
+  Eigen::Vector2d point_;
+  Eigen::Vector3d bearing_vector_;
+  Eigen::Matrix2d img_covariance_;
+  Eigen::Matrix3d bv_covariance_;
+  Eigen::Matrix3d hessian_;
 
-// char plotCovariancess(pnec::frames::BaseFrame::Ptr curr_frame,
-//                       pnec::FeatureMatches &matches, std::vector<int>
-//                       &inliers, std::string suffix);
-} // namespace visualization
+  KeyPoint()
+      : point_(Eigen::Vector2d::Zero()),
+        bearing_vector_(Eigen::Vector3d::Zero()),
+        img_covariance_(Eigen::Matrix2d::Zero()),
+        bv_covariance_(Eigen::Matrix3d::Zero()),
+        hessian_(Eigen::Matrix3d::Zero()) {}
+  KeyPoint(Eigen::Vector2d point, Eigen::Matrix2d covariance,
+           Eigen::Matrix3d hessian = Eigen::Matrix3d::Zero());
+  ~KeyPoint() {}
+
+private:
+  void Unproject();
+};
+
+cv::KeyPoint KeyPointToCV(KeyPoint keypoint);
+
+typedef size_t KeyPointID;
+typedef std::map<KeyPointID, KeyPoint> KeyPoints;
+} // namespace features
 } // namespace pnec
 
-#endif // COMMON_VISUALIZATION_H_
+#endif // FRAMES_KEYPOINTS_H_

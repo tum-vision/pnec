@@ -59,8 +59,6 @@ public:
                 pnec::common::FrameTiming &frame_timing)
       : BaseFrame(id, timestamp, path), tracking_{tracking} {
     FindFeatures(frame_timing);
-    undistortKeypoints();
-    UnscentedTransform();
   }
 
 private:

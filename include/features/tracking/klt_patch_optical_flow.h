@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <boost/log/trivial.hpp>
 #include <iostream>
 #include <thread>
 
@@ -56,12 +57,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace basalt {
 
-
 template <typename Map1, typename Map2>
-bool key_compare (Map1 const &lhs, Map2 const &rhs) {
-    return lhs.size() == rhs.size()
-        && std::equal(lhs.begin(), lhs.end(), rhs.begin(), 
-                      [] (auto a, auto b) { return a.first == b.first; });
+bool key_compare(Map1 const &lhs, Map2 const &rhs) {
+  return lhs.size() == rhs.size() &&
+         std::equal(lhs.begin(), lhs.end(), rhs.begin(),
+                    [](auto a, auto b) { return a.first == b.first; });
 }
 
 template <typename Scalar, template <typename> typename Pattern>
@@ -100,17 +100,6 @@ public:
 
   ~KLTPatchOpticalFlow() {}
 
-  void DeleteOldKeypoints() {
-    for (const auto &id : deleteKeypoints) {
-      if (patches.find(id) != patches.end()) {
-        patches.erase(id);
-      } else {
-        std::cout << "couldn't delete Keypoint" << std::endl;
-      }
-    }
-    deleteKeypoints.clear();
-  }
-
   OpticalFlowResult::Ptr processFrame(int64_t curr_t_ns,
                                       OpticalFlowInput::Ptr &new_img_vec) {
     for (const auto &v : new_img_vec->img_data) {
@@ -118,12 +107,10 @@ public:
         return transforms;
     }
 
-    int n_tracked_points = 0;
     if (t_ns < 0) {
       t_ns = curr_t_ns;
 
       transforms.reset(new OpticalFlowResult);
-      // std::cout << /*calib.intrinsics.size()*/ 1 << std::endl;
       transforms->observations.resize(/*calib.intrinsics.size()*/ 1);
       transforms->t_ns = t_ns;
 
@@ -140,9 +127,9 @@ public:
       filterPoints();
 
       tbb::concurrent_unordered_map<KeypointId, Matrix2, std::hash<KeypointId>>
-        result_cov;
+          result_cov;
       tbb::concurrent_unordered_map<KeypointId, Matrix3, std::hash<KeypointId>>
-        result_hessian;
+          result_hessian;
       for (const auto &kv : transforms->observations[0]) {
         KeypointId id = kv.first;
         const Eigen::aligned_vector<PatchT> &patch_vec = patches.at(id);
@@ -175,7 +162,7 @@ public:
 
       covariances.clear();
       hessians.clear();
-      
+
       std::cout << "Tracking patches" << std::endl;
       for (size_t i = 0; i < /*calib.intrinsics.size()*/ 1; i++) {
         trackPoints(old_pyramid->at(i), pyramid->at(i),
@@ -185,13 +172,17 @@ public:
       std::cout << "Finished Tracking" << std::endl;
 
       transforms = new_transforms;
-      n_tracked_points = transforms->observations[0].size();
-      std::cout << "Tracked " << n_tracked_points
-                << " patches from previous frame." << std::endl;
+      int num_tracked_points = transforms->observations[0].size();
       transforms->input_images = new_img_vec;
 
       addPoints();
       filterPoints();
+      int num_added_points =
+          transforms->observations[0].size() - num_tracked_points;
+
+      BOOST_LOG_TRIVIAL(debug)
+          << "Tracked " << num_tracked_points << " points and added "
+          << num_added_points << " new points.";
     }
     frame_counter++;
     return transforms;
@@ -205,7 +196,8 @@ public:
       const Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>
           &transform_map_1,
       Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f> &transform_map_2,
-      Eigen::aligned_map<KeypointId, Matrix2> &covariance_map, Eigen::aligned_map<KeypointId, Matrix3> &hessian_map) {
+      Eigen::aligned_map<KeypointId, Matrix2> &covariance_map,
+      Eigen::aligned_map<KeypointId, Matrix3> &hessian_map) {
     size_t num_points = transform_map_1.size();
 
     std::vector<KeypointId> ids;
@@ -245,18 +237,25 @@ public:
 
           if (valid) {
             Scalar dist2 = (transform_1.translation() -
-                       transform_1_recovered.translation())
-                          .squaredNorm();
+                            transform_1_recovered.translation())
+                               .squaredNorm();
 
-            if (dist2 < config.optical_flow_max_recovered_dist2) {
+            valid = dist2 < config.optical_flow_max_recovered_dist2;
+            if (valid) {
               result[id] = transform_2;
               result_cov[id] = transform_2.rotation() *
-                                (patch_vec[min_level].Cov / 10.0) *
-                                transform_2.rotation()
-                                    .transpose(); // factor for trace norming
+                               (patch_vec[min_level].Cov / 10.0) *
+                               transform_2.rotation()
+                                   .transpose(); // factor for trace norming
               result_hessian[id] = patch_vec[min_level].H_se2 * 10.0;
             }
           }
+        }
+        // remove id from patches to save memory footprint
+        if (!valid && patches.count(id) > 0) {
+          BOOST_LOG_TRIVIAL(debug) << "Trying to delete keypoint with id " << id
+                                   << " that isn't valid ";
+          patches.erase(id);
         }
       }
     };
@@ -275,17 +274,17 @@ public:
     covariance_map.clear();
     covariance_map.insert(result_cov.begin(), result_cov.end());
     std::cout << " " << covariance_map.size();
-    
+
     hessian_map.clear();
     hessian_map.insert(result_hessian.begin(), result_hessian.end());
     std::cout << " " << hessian_map.size() << std::endl;
 
-    if (!key_compare(transform_map_2, covariance_map) || !key_compare(transform_map_2, hessian_map)) {
+    if (!key_compare(transform_map_2, covariance_map) ||
+        !key_compare(transform_map_2, hessian_map)) {
       std::cout << "Something wrong" << std::endl;
     } else {
       std::cout << "Everything is fine" << std::endl;
     }
-
   }
 
   inline bool trackPoint(const basalt::ManagedImagePyr<uint16_t> &pyr,
@@ -300,8 +299,8 @@ public:
       transform.translation() /= scale;
 
       // Perform tracking on current level
-      patch_valid &= trackPointAtLevel(pyr.lvl(level), patch_vec[level],
-                                       transform, scale);
+      patch_valid &=
+          trackPointAtLevel(pyr.lvl(level), patch_vec[level], transform, scale);
 
       transform.translation() *= scale;
     }
@@ -311,7 +310,8 @@ public:
 
   inline bool trackPointAtLevel(const Image<const u_int16_t> &img_2,
                                 const PatchT &dp,
-                                Eigen::AffineCompact2f &transform, Scalar scale) const {
+                                Eigen::AffineCompact2f &transform,
+                                Scalar scale) const {
     bool patch_valid = true;
 
     for (int iteration = 0;
@@ -436,9 +436,9 @@ public:
     return covariances;
   }
 
-  Eigen::aligned_map<KeypointId, Matrix3> Hessians() const {
-    return hessians;
-  }
+  Eigen::aligned_map<KeypointId, Matrix3> Hessians() const { return hessians; }
+
+  OpticalFlowResult::Ptr Transforms() const { return transforms; }
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:

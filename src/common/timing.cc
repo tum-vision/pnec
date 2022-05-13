@@ -38,17 +38,23 @@
 namespace pnec {
 namespace common {
 
+int FrameTiming::OptimizationTime() const {
+  return nec_es_.count() + it_es_.count() + ceres_.count();
+}
+
+int FrameTiming::TotalTime() const {
+  return frame_loading_.count() + feature_creation_.count() +
+         OptimizationTime();
+}
+
 std::ostream &operator<<(std::ostream &os, const FrameTiming &frame_timing) {
-  int optimization = frame_timing.nec_es_.count() +
-                     frame_timing.it_es_.count() + frame_timing.ceres_.count();
-  int total = frame_timing.frame_loading_.count() +
-              frame_timing.feature_creation_.count() + optimization;
   os << frame_timing.id_ << " " << std::scientific << std::setprecision(8)
      << frame_timing.frame_loading_.count() << " "
      << frame_timing.feature_creation_.count() << " "
      << frame_timing.nec_es_.count() << " " << frame_timing.it_es_.count()
      << " " << frame_timing.avg_it_es_.count() << " "
-     << frame_timing.ceres_.count() << " " << optimization << " " << total;
+     << frame_timing.ceres_.count() << " " << frame_timing.OptimizationTime()
+     << " " << frame_timing.TotalTime();
   return os;
 }
 

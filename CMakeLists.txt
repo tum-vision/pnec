@@ -27,7 +27,7 @@ include(UpdateCacheVariable)
 # instead of local eigen install which is not necessary 3.4
 add_subdirectory(third_party/basalt EXCLUDE_FROM_ALL)
 # ============================= basalt =============================
-find_package(Boost COMPONENTS filesystem REQUIRED)
+find_package(Boost COMPONENTS filesystem log log_setup REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 find_package(SuiteSparse)
 find_package(Ceres REQUIRED)
@@ -89,6 +89,8 @@ set( THIRD_PARTY_LIBS
     umfpack
     ${OpenCV_LIBRARIES}
     ${Boost_FILESYSTEM_LIBRARY} 
+    ${Boost_LOG_LIBRARY}
+    ${Boost_LOG_SETUP_LIBRARY}
     -lboost_system
     opengv
     basalt

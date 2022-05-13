@@ -80,6 +80,8 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   view_graph_->GetViewByPos(prev_view_idx, prev_view);
   pnec::frames::BaseFrame::Ptr prev_frame = prev_view->Frame();
 
+  BOOST_LOG_TRIVIAL(debug) << "Finding matches between frames "
+                           << prev_frame->id() << " and " << curr_frame->id();
   bool skipping_frame;
   pnec::FeatureMatches matches =
       matcher_->FindMatches(prev_frame, curr_frame, skipping_frame);
@@ -97,13 +99,12 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
 
   Sophus::SE3d prev_pose(prev_rel_rotation, Eigen::Vector3d(0.0, 0.0, 0.0));
 
+  BOOST_LOG_TRIVIAL(debug) << "Finding the relative pose between "
+                           << prev_frame->id() << " and " << curr_frame->id();
   Sophus::SE3d rel_pose = f2f_pose_estimation_->Align(
       prev_frame, curr_frame, matches, prev_pose, inliers, frame_timing, true,
       results_folder + "ablation/");
-  int n_epi_inlr = inliers.size();
 
-  //   matches_vec.push_back(matches.size());
-  //   inliers_vec.push_back(n_epi_inlr);
   view_graph_->AddView(curr_view);
   bool success = view_graph_->Connect(prev_view, curr_view, matches, rel_pose);
   if (!success) {

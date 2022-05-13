@@ -34,6 +34,10 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/console.hpp>
 #include <fstream>
 #include <map>
 #include <random>
@@ -56,6 +60,13 @@
 #include "pnec.h"
 #include "pnec_config.h"
 #include "sim_common.h"
+
+void log_init() {
+  boost::log::add_console_log(std::cout, boost::log::keywords::format =
+                                             "[%Severity%] %Message%");
+  boost::log::core::get()->set_filter(boost::log::trivial::severity >=
+                                      boost::log::trivial::debug);
+}
 
 void LoadExperiment(std::string folder,
                     simulation::common::LoadedExperiment &experiment) {}
@@ -173,6 +184,8 @@ void Ablation(
 }
 
 int main(int argc, const char *argv[]) {
+  log_init();
+
   const cv::String keys =
       "{help h usage ?    |          | print this message}"
       "{@base_folder      |none      | base folder name}"
@@ -281,7 +294,7 @@ int main(int argc, const char *argv[]) {
 
   for (const auto &ending : str_endings) {
     std::string experiment_folder = folder + ending;
-    std::cout << "Working on folder: " << experiment_folder << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Working on folder: " << experiment_folder;
 
     std::vector<simulation::common::LoadedExperiment> experiments;
     simulation::common::ReadExperiments(experiment_folder, experiments,
@@ -312,7 +325,7 @@ int main(int argc, const char *argv[]) {
 
     for (const auto &experiment : experiments) {
       if (counter % int(num_experiments / 10) == 0) {
-        std::cout << "Finished with experiment " << counter << std::endl;
+        BOOST_LOG_TRIVIAL(info) << "Finished with experiment " << counter;
       }
 
       if (em_methods) {

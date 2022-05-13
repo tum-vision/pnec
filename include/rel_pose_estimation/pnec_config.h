@@ -49,7 +49,7 @@ struct Options {
   pnec::common::NoiseFrame noise_frame_ = pnec::common::Target;
   double regularization_ = 1.0e-13;
 
-  int weighted_iterations_ = 10;
+  size_t weighted_iterations_ = 10;
   bool use_scf_ = true;
 
   bool use_ceres_ = true;
