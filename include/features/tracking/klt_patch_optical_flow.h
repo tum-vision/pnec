@@ -93,17 +93,6 @@ public:
 
   ~KLTPatchOpticalFlow() {}
 
-  void DeleteOldKeypoints() {
-    for (const auto &id : deleteKeypoints) {
-      if (patches.find(id) != patches.end()) {
-        patches.erase(id);
-      } else {
-        BOOST_LOG_TRIVIAL(info) << "couldn't delete Keypoint with id " << id;
-      }
-    }
-    deleteKeypoints.clear();
-  }
-
   OpticalFlowResult::Ptr processFrame(int64_t curr_t_ns,
                                       OpticalFlowInput::Ptr &new_img_vec) {
     for (const auto &v : new_img_vec->img_data) {
@@ -217,101 +206,27 @@ public:
           if (valid) {
             // backward_tracking[r] = 1;
             Scalar dist2;
-            if (use_mahalanobis_) {
-              dist2 = (transform_1.translation() -
-                       transform_1_recovered.translation())
-                          .transpose() *
-                      transform_1.rotation() *
-                      patch_vec[min_level].Cov.inverse() *
-                      transform_1.rotation().transpose() *
-                      (transform_1.translation() -
-                       transform_1_recovered.translation());
-            } else {
-              dist2 = (transform_1.translation() -
-                       transform_1_recovered.translation())
-                          .squaredNorm();
-            }
+            dist2 = (transform_1.translation() -
+                     transform_1_recovered.translation())
+                        .squaredNorm();
 
-            if (dist2 < config.optical_flow_max_recovered_dist2) {
+            valid = dist2 < config.optical_flow_max_recovered_dist2;
+            if (valid) {
               // distance_tracking[r] = 1;
               result[id] = transform_2;
-              if (numerical_cov_) {
-                typename PatchT::VectorP res;
-                bool valid_res;
-                PatchT dp = patch_vec[min_level];
-                typename PatchT::Matrix2P transformed_pat =
-                    transform_2.linear().matrix() * PatchT::pattern2;
-                transformed_pat.colwise() += transform_2.translation();
-                typename PatchT::Matrix2P offset_transformed_pat;
-
-                valid_res =
-                    dp.residual(pyr_2.lvl(min_level), transformed_pat, res);
-                Scalar e_0 = res.mean();
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(1.0, 0.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_x = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(-1.0, 0.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_x = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(0.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(0.0, -1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(1.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_x_pos_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(1.0, -1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_pos_x_neg_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(-1.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_x_pos_y = res.transpose() * res;
-                offset_transformed_pat = transformed_pat;
-                offset_transformed_pat.colwise() += Eigen::Vector2f(-1.0, 1.0);
-                valid_res = dp.residual(pyr_2.lvl(min_level),
-                                        offset_transformed_pat, res);
-                Scalar e_neg_x_neg_y = res.transpose() * res;
-
-                Matrix2 H;
-                H(0, 0) = e_pos_x - 2 * e_0 + e_neg_x;
-                H(1, 0) = (e_pos_x_pos_y - e_pos_x_neg_y - e_neg_x_pos_y +
-                           e_neg_x_neg_y) /
-                          4.0;
-                H(0, 1) = H(1, 0);
-                H(1, 1) = e_pos_y - 2 * e_0 + e_neg_y;
-                result_cov[id] = H.inverse() * 52.0;
-              } else {
-                result_cov[id] = transform_2.rotation() *
-                                 (patch_vec[min_level].Cov / 10.0) *
-                                 transform_2.rotation()
-                                     .transpose(); // factor for trace norming
-              }
-            } else {
-              // remove id from patches map
-              valid = false;
+              result_cov[id] = transform_2.rotation() *
+                               (patch_vec[min_level].Cov / 10.0) *
+                               transform_2.rotation()
+                                   .transpose(); // factor for trace norming
             }
           }
         }
 
         // remove id from patches to save memory footprint
-        if (!valid) {
-          deleteKeypoints.push_back(id);
+        if (!valid && patches.count(id) > 0) {
+          BOOST_LOG_TRIVIAL(debug) << "Trying to delete keypoint with id " << id
+                                   << " that isn't valid ";
+          patches.erase(id);
         }
       }
     };
