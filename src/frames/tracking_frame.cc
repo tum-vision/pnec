@@ -59,18 +59,6 @@ void TrackingFrame::FindFeatures(pnec::common::FrameTiming &frame_timing) {
   basalt::OpticalFlowResult::Ptr result = tracking_.processFrame(id_, img_ptr);
 
   keypoints_ = pnec::converter::KeypointsFromOpticalFlow(tracking_, true);
-
-  // pnec::converter::KeypointsFromOpticalFlow(result, keypoints_,
-  // keypoint_ids_);
-
-  // auto result_cov = tracking_.Covariances();
-  // if (result_cov[0].size() != 0) {
-  //   for (const auto &covariance : result_cov[0]) {
-  //     covariances_.push_back(covariance.second.cast<double>());
-  //   }
-  // }
-
-  tracking_.DeleteOldKeypoints();
 }
 } // namespace frames
 } // namespace pnec

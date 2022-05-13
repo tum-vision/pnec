@@ -67,11 +67,6 @@ public:
 
   double Timestamp() { return timestamp_; }
 
-  // std::vector<Eigen::Vector3d> &ProjectedPoints() { return projected_points_;
-  // } std::vector<Eigen::Matrix3d> &ProjectedCovariances() {
-  //   return projected_covariances_;
-  // }
-
   int id() const { return id_; }
 
   cv::Mat getImage();
@@ -86,21 +81,6 @@ protected:
   const std::string path_;
 
   pnec::features::KeyPoints keypoints_;
-
-  // void undistortKeypoints();
-
-  // void UnscentedTransform();
-
-  // // Before the unscented Transform
-  // std::vector<cv::KeyPoint> keypoints_;
-  // std::vector<uint32_t> keypoint_ids_;
-
-  // std::vector<cv::KeyPoint> undistorted_keypoints_;
-  // std::vector<Eigen::Matrix2d> covariances_;
-
-  // // After the Unscented Transform
-  // std::vector<Eigen::Matrix3d> projected_covariances_;
-  // std::vector<Eigen::Vector3d> projected_points_;
 };
 } // namespace frames
 } // namespace pnec

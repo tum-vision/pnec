@@ -114,6 +114,11 @@ Sophus::SE3d Frame2Frame::AlignFurther(pnec::frames::BaseFrame::Ptr frame1,
   return rel_pose;
 }
 
+const std::map<std::string, std::vector<std::pair<double, Sophus::SE3d>>> &
+Frame2Frame::GetAblationResults() const {
+  return ablation_rel_poses_;
+}
+
 Sophus::SE3d Frame2Frame::PNECAlign(
     const opengv::bearingVectors_t &bvs1, const opengv::bearingVectors_t &bvs2,
     const std::vector<Eigen::Matrix3d> &projected_covs,
@@ -123,9 +128,12 @@ Sophus::SE3d Frame2Frame::PNECAlign(
   Sophus::SE3d rel_pose =
       pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, frame_timing);
 
-  if (ablation_folder != "") {
-    pnec::out::SavePose(ablation_folder, "PNEC", curr_timestamp_, rel_pose);
+  if (ablation_rel_poses_.count("PNEC") == 0) {
+    ablation_rel_poses_["PNEC"] = {
+        std::make_pair<double, Sophus::SE3d>(0.0, Sophus::SE3d())};
   }
+  ablation_rel_poses_["PNEC"].push_back(
+      std::make_pair(curr_timestamp_, rel_pose));
   return rel_pose;
 }
 
@@ -133,16 +141,27 @@ void Frame2Frame::AblationAlign(
     const opengv::bearingVectors_t &bvs1, const opengv::bearingVectors_t &bvs2,
     const std::vector<Eigen::Matrix3d> &projected_covs,
     std::string ablation_folder) {
+  BOOST_LOG_TRIVIAL(debug) << "Using ablation methods";
+
+  auto GetPrevRelPose = [this](std::string method_name) -> Sophus::SE3d {
+    Sophus::SE3d prev_rel_pose;
+    if (ablation_rel_poses_.count(method_name) == 0) {
+      BOOST_LOG_TRIVIAL(debug) << "Didn't previous pose for " << method_name
+                               << ", returning identity";
+      ablation_rel_poses_[method_name] = {
+          std::make_pair<double, Sophus::SE3d>(0.0, Sophus::SE3d())};
+      prev_rel_pose = Sophus::SE3d();
+    } else {
+      BOOST_LOG_TRIVIAL(debug) << "Loading previous pose for " << method_name;
+      prev_rel_pose = ablation_rel_poses_[method_name].back().second;
+    }
+    return prev_rel_pose;
+  };
+
   {
     std::string name = "NEC";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+    Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
     pnec::rel_pose_estimation::Options nec_options = options_;
     nec_options.use_nec_ = true;
@@ -153,20 +172,14 @@ void Frame2Frame::AblationAlign(
     Sophus::SE3d rel_pose =
         pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+    ablation_rel_poses_[name].push_back(
+        std::make_pair(curr_timestamp_, rel_pose));
   }
 
   {
     std::string name = "NEC-LS";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+    Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
     pnec::rel_pose_estimation::Options nec_options = options_;
     nec_options.use_nec_ = true;
@@ -176,211 +189,168 @@ void Frame2Frame::AblationAlign(
     Sophus::SE3d rel_pose =
         pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+    ablation_rel_poses_[name].push_back(
+        std::make_pair(curr_timestamp_, rel_pose));
   }
 
-  {
-    std::string name = "NEC+PNEC-LS";
+  // {
+  //   std::string name = "NEC+PNEC-LS";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    pnec::rel_pose_estimation::Options options = options_;
-    options.weighted_iterations_ = 1;
+  //   pnec::rel_pose_estimation::Options options = options_;
+  //   options.weighted_iterations_ = 1;
 
-    pnec::rel_pose_estimation::PNEC pnec(options);
-    pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
-    Sophus::SE3d rel_pose =
-        pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
+  //   pnec::rel_pose_estimation::PNEC pnec(options);
+  //   pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
+  //   Sophus::SE3d rel_pose =
+  //       pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 
-  {
-    std::string name = "PNECwoLS";
+  // {
+  //   std::string name = "PNECwoLS";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    pnec::rel_pose_estimation::Options options = options_;
-    options.use_ceres_ = false;
+  //   pnec::rel_pose_estimation::Options options = options_;
+  //   options.use_ceres_ = false;
 
-    pnec::rel_pose_estimation::PNEC pnec(options);
-    pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
-    Sophus::SE3d rel_pose =
-        pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
+  //   pnec::rel_pose_estimation::PNEC pnec(options);
+  //   pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
+  //   Sophus::SE3d rel_pose =
+  //       pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 
-  {
-    std::string name = "PNEConlyLS";
+  // {
+  //   std::string name = "PNEConlyLS";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    pnec::rel_pose_estimation::Options options = options_;
-    options.weighted_iterations_ = 0;
+  //   pnec::rel_pose_estimation::Options options = options_;
+  //   options.weighted_iterations_ = 0;
 
-    pnec::rel_pose_estimation::PNEC pnec(options);
-    pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
-    Sophus::SE3d rel_pose =
-        pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
+  //   pnec::rel_pose_estimation::PNEC pnec(options);
+  //   pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
+  //   Sophus::SE3d rel_pose =
+  //       pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 
-  {
-    std::string name = "PNEConlyLSfull";
+  // {
+  //   std::string name = "PNEConlyLSfull";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    pnec::rel_pose_estimation::Options options = options_;
-    options.weighted_iterations_ = 0;
-    options.ceres_options_.max_num_iterations = 10000;
+  //   pnec::rel_pose_estimation::Options options = options_;
+  //   options.weighted_iterations_ = 0;
+  //   options.ceres_options_.max_num_iterations = 10000;
 
-    pnec::rel_pose_estimation::PNEC pnec(options);
-    pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
-    Sophus::SE3d rel_pose =
-        pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
+  //   pnec::rel_pose_estimation::PNEC pnec(options);
+  //   pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
+  //   Sophus::SE3d rel_pose =
+  //       pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 
-  {
-    std::vector<size_t> iterations = {5, 15};
+  // {
+  //   std::vector<size_t> iterations = {5, 15};
 
-    for (const auto &max_it : iterations) {
-      {
-        std::string name = "PNEC-" + std::to_string(max_it);
+  //   for (const auto &max_it : iterations) {
+  //     {
+  //       std::string name = "PNEC-" + std::to_string(max_it);
 
-        Sophus::SE3d prev_rel_pose;
-        if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-          prev_rel_poses_[name] = Sophus::SE3d();
-          prev_rel_pose = Sophus::SE3d();
-        } else {
-          prev_rel_pose = prev_rel_poses_[name];
-        }
+  //       Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-        pnec::rel_pose_estimation::Options options = options_;
-        options.weighted_iterations_ = max_it;
+  //       pnec::rel_pose_estimation::Options options = options_;
+  //       options.weighted_iterations_ = max_it;
 
-        pnec::rel_pose_estimation::PNEC pnec(options);
-        pnec::common::FrameTiming dummy_timing = pnec::common::FrameTiming(0);
-        Sophus::SE3d rel_pose =
-            pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, dummy_timing);
+  //       pnec::rel_pose_estimation::PNEC pnec(options);
+  //       pnec::common::FrameTiming dummy_timing =
+  //       pnec::common::FrameTiming(0); Sophus::SE3d rel_pose =
+  //           pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose,
+  //           dummy_timing);
 
-        prev_rel_poses_[name] = rel_pose;
-        pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-      }
-    }
-  }
+  //       ablation_rel_poses_[name].push_back(
+  //           std::make_pair(curr_timestamp_, rel_pose));
+  //       pnec::out::SavePose(ablation_folder, name, curr_timestamp_,
+  //       rel_pose);
+  //     }
+  //   }
+  // }
 
-  {
-    std::string name = "8pt";
+  // {
+  //   std::string name = "8pt";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
-        bvs1, bvs2, prev_rel_pose,
-        opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
-            EIGHTPT);
+  //   Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
+  //       bvs1, bvs2, prev_rel_pose,
+  //       opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
+  //           EIGHTPT);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 
-  {
-    std::string name = "Nister5pt";
+  // {
+  //   std::string name = "Nister5pt";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
-        bvs1, bvs2, prev_rel_pose,
-        opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
-            NISTER);
+  //   Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
+  //       bvs1, bvs2, prev_rel_pose,
+  //       opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
+  //           NISTER);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 
-  {
-    std::string name = "Stewenius5pt";
+  // {
+  //   std::string name = "Stewenius5pt";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
-        bvs1, bvs2, prev_rel_pose,
-        opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
-            STEWENIUS);
+  //   Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
+  //       bvs1, bvs2, prev_rel_pose,
+  //       opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
+  //           STEWENIUS);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 
-  {
-    std::string name = "7pt";
+  // {
+  //   std::string name = "7pt";
 
-    Sophus::SE3d prev_rel_pose;
-    if (prev_rel_poses_.find(name) != prev_rel_poses_.end()) {
-      prev_rel_poses_[name] = Sophus::SE3d();
-      prev_rel_pose = Sophus::SE3d();
-    } else {
-      prev_rel_pose = prev_rel_poses_[name];
-    }
+  //   Sophus::SE3d prev_rel_pose = GetPrevRelPose(name);
 
-    Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
-        bvs1, bvs2, prev_rel_pose,
-        opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
-            SEVENPT);
+  //   Sophus::SE3d rel_pose = pnec::rel_pose_estimation::EMPoseEstimation(
+  //       bvs1, bvs2, prev_rel_pose,
+  //       opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem::
+  //           SEVENPT);
 
-    prev_rel_poses_[name] = rel_pose;
-    pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
-  }
+  //   ablation_rel_poses_[name].push_back(
+  //       std::make_pair(curr_timestamp_, rel_pose));
+  //   pnec::out::SavePose(ablation_folder, name, curr_timestamp_, rel_pose);
+  // }
 }
 
 void Frame2Frame::GetFeatures(pnec::frames::BaseFrame::Ptr host_frame,

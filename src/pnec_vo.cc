@@ -55,6 +55,7 @@
 #include "frame_processing.h"
 #include "klt_patch_optical_flow.h"
 #include "nec_ceres.h"
+#include "odometry_output.h"
 #include "pnec_ceres.h"
 #include "timing.h"
 #include "tracking_frame.h"
@@ -65,7 +66,7 @@ void log_init() {
   boost::log::add_console_log(std::cout, boost::log::keywords::format =
                                              "[%Severity%] %Message%");
   boost::log::core::get()->set_filter(boost::log::trivial::severity >=
-                                      boost::log::trivial::debug);
+                                      boost::log::trivial::info);
 }
 
 int main(int argc, const char *argv[]) {
@@ -246,8 +247,19 @@ int main(int argc, const char *argv[]) {
     selected_frames.push_back(count);
 
     timing.push_back(frame_timing);
+    BOOST_LOG_TRIVIAL(info)
+        << "Processed frame " << f->id() << " in " << frame_timing.TotalTime()
+        << " miliseconds, not including ablation methods";
+  }
 
-    // id++;
+  std::map<std::string, std::vector<std::pair<double, Sophus::SE3d>>>
+      ablation_pose = rel_pose_estimation->GetAblationResults();
+  for (auto const &[name, poses] : ablation_pose) {
+    BOOST_LOG_TRIVIAL(info) << "Saving poses for " << name;
+    for (const auto &timestamped_pose : poses) {
+      pnec::out::SavePose(results_path + "ablation/", name,
+                          timestamped_pose.first, timestamped_pose.second);
+    }
   }
 
   std::ofstream out;
@@ -255,6 +267,7 @@ int main(int argc, const char *argv[]) {
 
   out << timing;
 
+  BOOST_LOG_TRIVIAL(info) << "Saving VO poses";
   view_graph->savePoses();
   return 0;
 }

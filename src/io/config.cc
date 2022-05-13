@@ -67,7 +67,8 @@ LoadPNECConfig(const std::string &config_path) {
   options.noise_frame_ = noise_frame;
   options.regularization_ = settings["PNEC.regularization"];
 
-  options.weighted_iterations_ = settings["PNEC.weightedIterations"];
+  options.weighted_iterations_ =
+      static_cast<int>(settings["PNEC.weightedIterations"]);
   options.use_scf_ = (scf_int == 0) ? false : true;
 
   options.use_ceres_ = (ceres_int == 0) ? false : true;
