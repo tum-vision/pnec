@@ -34,12 +34,16 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/console.hpp>
 #include <filesystem>
 #include <iostream>
+#include <stdio.h>
 #include <string.h>
 #include <unordered_map>
 #include <vector>
-#include <stdio.h>
 
 #include <opencv2/highgui/highgui.hpp>
 #include <sophus/se3.hpp>
@@ -59,7 +63,15 @@
 #include "tracking_matcher.h"
 #include "view_graph.h"
 
+void log_init() {
+  boost::log::add_console_log(std::cout, boost::log::keywords::format =
+                                             "[%Severity%] %Message%");
+  boost::log::core::get()->set_filter(boost::log::trivial::severity >=
+                                      boost::log::trivial::debug);
+}
+
 int main(int argc, const char *argv[]) {
+  log_init();
   std::cout << "Hello" << std::endl;
   // TODO: Check Frame2Frame
   // TODO: Update ORBExtractor
@@ -88,7 +100,7 @@ int main(int argc, const char *argv[]) {
       "         }"
       "{@sequence_path   |<none>| path to images                               "
       "         }"
-      "{@gt_path         |<none>| path to ground truth poses                   "   
+      "{@gt_path         |<none>| path to ground truth poses                   "
       "         }"
       "{@timestamp_path  |<none>| path to timestamps                           "
       "         }"
@@ -97,8 +109,7 @@ int main(int argc, const char *argv[]) {
       "{@no_skip         |<none>| don't skip any frames                        "
       "         }"
       "{image_ext        |.png  | image extension                              "
-      "         }"
-      ;
+      "         }";
 
   std::cout << licence_notice << std::endl;
 
@@ -204,9 +215,9 @@ int main(int argc, const char *argv[]) {
 
   bool first = true;
 
-  std::cout << "Removing old files from:" << std::endl << 
-  results_path + "covariances.txt" << std::endl <<
-  results_path + "hessians.txt" << std::endl;
+  std::cout << "Removing old files from:" << std::endl
+            << results_path + "covariances.txt" << std::endl
+            << results_path + "hessians.txt" << std::endl;
   // remove covariances.txt and hessian.txt from results folder
   std::filesystem::remove(results_path + "covariances.txt");
   std::filesystem::remove(results_path + "hessians.txt");
@@ -241,7 +252,8 @@ int main(int argc, const char *argv[]) {
     bool frame_is_selected =
         frame_processor.ProcessFrame(f, frame_timing, results_path);
 
-    frame_processor.ProcessUncertaintyExtractionVO(f, rel_gt_poses[image.id_], results_path, save_patches);
+    frame_processor.ProcessUncertaintyExtractionVO(f, rel_gt_poses[image.id_],
+                                                   results_path, save_patches);
   }
 
   return 0;

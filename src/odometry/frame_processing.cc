@@ -46,6 +46,7 @@
 
 #include "base_matcher.h"
 #include "common.h"
+#include "visualization.h"
 
 #define PLOT true
 
@@ -102,7 +103,7 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   BOOST_LOG_TRIVIAL(debug) << "Finding the relative pose between "
                            << prev_frame->id() << " and " << curr_frame->id();
   Sophus::SE3d rel_pose = f2f_pose_estimation_->Align(
-      prev_frame, curr_frame, matches, prev_pose, inliers, frame_timing, true,
+      prev_frame, curr_frame, matches, prev_pose, inliers, frame_timing, false,
       results_folder + "ablation/");
 
   view_graph_->AddView(curr_view);
@@ -111,6 +112,9 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
     return false;
   }
   view_graph_->ShortenViewGraph();
+
+  pnec::visualization::plotMatches(prev_frame, curr_frame, matches, inliers,
+                                   "_presentation");
 
   // Visualization
   // TODO: Make Visualization
@@ -191,11 +195,11 @@ bool FrameProcessing::ProcessUncertaintyExtractionVO(
   pnec::odometry::View::Ptr curr_view =
       std::make_shared<pnec::odometry::View>(frame);
 
-  const int m = 1 + view_graph_->GraphSize();
+  const int m = view_graph_->GraphSize();
 
   // no pose estimation for the first frame
-  std::cout << m << std::endl;
-  if (m <= 2) {
+  BOOST_LOG_TRIVIAL(info) << "Graph size " << m;
+  if (m == 1) {
     std::cout << "No pose estimation for the first frame" << std::endl;
     view_graph_->AddView(curr_view);
     return true;
@@ -203,16 +207,16 @@ bool FrameProcessing::ProcessUncertaintyExtractionVO(
 
   pnec::frames::BaseFrame::Ptr curr_frame = curr_view->Frame();
 
-  const int curr_view_idx = m - 1;
-  int prev_view_idx = curr_view_idx - 2;
+  const int curr_view_idx = m;
+  int prev_view_idx = m - 2;
 
   int count_connections = 0;
 
   pnec::odometry::View::Ptr prev_view;
   view_graph_->GetViewByPos(prev_view_idx, prev_view);
   pnec::frames::BaseFrame::Ptr prev_frame = prev_view->Frame();
-  std::cout << prev_frame->id() << std::endl;
-  std::cout << curr_frame->id() << std::endl;
+  BOOST_LOG_TRIVIAL(info) << "Host Frame ID: " << prev_frame->id()
+                          << " Target Frame ID: " << curr_frame->id();
 
   bool skipping_frame;
   pnec::FeatureMatches matches =
@@ -236,13 +240,19 @@ bool FrameProcessing::ProcessUncertaintyExtractionVO(
       target_inlier_ids.push_back(match.trainIdx);
     }
 
-    std::cout << "Saving " << host_inlier_ids.size() << " inlier patches"
-              << std::endl;
+    std::string image_results_folder =
+        results_folder + std::to_string(curr_frame->id()) + "/";
+    if (!boost::filesystem::exists(image_results_folder)) {
+      boost::filesystem::create_directory(image_results_folder);
+    }
+
+    BOOST_LOG_TRIVIAL(info)
+        << "Saving " << host_inlier_ids.size() << " inlier patches";
     curr_frame->SaveInlierPatchesStructured(
         prev_frame->keypoints(host_inlier_ids),
         curr_frame->keypoints(target_inlier_ids), extraction_counter_,
-        results_folder);
-    std::cout << "Saved Patches." << std::endl;
+        image_results_folder);
+    BOOST_LOG_TRIVIAL(info) << "Saved Patches.";
   }
 
   return true;

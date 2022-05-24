@@ -223,5 +223,25 @@ void BaseFrame::PlotFeatures() {
   cv::waitKey(0);
 }
 
+void GetInlierKeyPoints(
+    pnec::frames::BaseFrame::Ptr host_frame,
+    pnec::frames::BaseFrame::Ptr target_frame, pnec::FeatureMatches matches,
+    std::vector<int> inliers,
+    std::vector<pnec::features::KeyPoint> &inlier_host_frame,
+    std::vector<pnec::features::KeyPoint> &inlier_target_frame) {
+  inlier_host_frame.clear();
+  inlier_host_frame.reserve(inliers.size());
+  inlier_target_frame.clear();
+  inlier_target_frame.reserve(inliers.size());
+  pnec::features::KeyPoints host_keypoints = host_frame->keypoints();
+  pnec::features::KeyPoints target_keypoints = target_frame->keypoints();
+
+  for (const auto &inlier : inliers) {
+    cv::DMatch match = matches[inlier];
+    inlier_host_frame.push_back(host_keypoints[match.queryIdx]);
+    inlier_target_frame.push_back(target_keypoints[match.trainIdx]);
+  }
+}
+
 } // namespace frames
 } // namespace pnec

@@ -78,93 +78,168 @@ cv::RotatedRect GetErrorEllipse(double chisquare_val, cv::Point2f mean,
 
 char plotMatches(pnec::frames::BaseFrame::Ptr host_frame,
                  pnec::frames::BaseFrame::Ptr target_frame,
-                 pnec::FeatureMatches &id_matches, std::vector<int> &inliers,
+                 pnec::FeatureMatches &matches, std::vector<int> &inliers,
                  std::string suffix) {
-  std::string window_name = std::to_string(target_frame->id()) + "_" +
-                            std::to_string(host_frame->id()) + suffix;
+  std::stringstream ss_host;
+  ss_host << std::setw(6) << std::setfill('0') << host_frame->id();
+  std::stringstream ss_target;
+  ss_target << std::setw(6) << std::setfill('0') << target_frame->id();
+  std::string image_name = ss_host.str() + "_" + ss_target.str() + suffix;
 
-  auto im1 = host_frame->getImage();
-  auto im2 = target_frame->getImage();
-  std::vector<cv::KeyPoint> host_kps;
-  std::vector<cv::KeyPoint> target_kps;
-  std::vector<cv::DMatch> idx_matches;
-  std::vector<cv::DMatch> inlier_idx_matches;
+  std::vector<pnec::features::KeyPoint> host_keypoints;
+  std::vector<pnec::features::KeyPoint> target_keypoints;
 
-  for (auto const &[id, keypoint] : host_frame->keypoints()) {
-    host_kps.push_back(pnec::features::KeyPointToCV(keypoint));
-  }
-  for (auto const &[id, keypoint] : target_frame->keypoints()) {
-    target_kps.push_back(pnec::features::KeyPointToCV(keypoint));
-  }
+  pnec::frames::GetInlierKeyPoints(host_frame, target_frame, matches, inliers,
+                                   host_keypoints, target_keypoints);
 
-  for (const auto match : id_matches) {
-    size_t host_idx =
-        std::distance(host_frame->keypoints().begin(),
-                      host_frame->keypoints().find(match.queryIdx));
-    size_t target_idx =
-        std::distance(target_frame->keypoints().begin(),
-                      target_frame->keypoints().find(match.trainIdx));
-    idx_matches.push_back(cv::DMatch(host_idx, target_idx, 0.0));
-  }
+  std::vector<cv::KeyPoint> cv_host_keypoints;
+  std::vector<cv::KeyPoint> cv_target_keypoints;
+  std::vector<cv::Mat> covariances;
+  std::vector<cv::DMatch> cv_matches;
 
-  std::vector<Eigen::Matrix2d> covariances;
-  for (auto const &[id, keypoint] : target_frame->keypoints()) {
-    covariances.push_back(keypoint.img_covariance_);
-  }
-
-  pnec::FeatureMatches inlier_matches;
-  for (const auto &inlier : inliers) {
-    inlier_matches.push_back(id_matches[inlier]);
-  }
-
-  cv::Mat matches_img;
-  cv::drawMatches(im1, host_kps, im2, target_kps, id_matches, matches_img);
-
-  for (const auto &match : id_matches) {
-    if (covariances[match.trainIdx](0, 0) >= 0.0) {
-      cv::Mat cv_cov;
-      cv::eigen2cv(covariances[match.trainIdx], cv_cov);
-      cv::RotatedRect ellipse = pnec::visualization::GetErrorEllipse(
-          2.4477,
-          target_kps[match.trainIdx].pt +
-              cv::Point2f(matches_img.cols / 2.0, 0.0),
-          cv_cov);
-      cv::ellipse(matches_img, ellipse, cv::Scalar(255, 0, 0), 1);
+  int skip = 3;
+  int counter = 0;
+  for (size_t idx = 0; idx < inliers.size(); idx++) {
+    if (matches[inliers[idx]].queryIdx % skip != 0) {
+      continue;
     }
+    // if (target_keypoints[idx].img_covariance_(0, 0) <= 0) {
+    //   continue;
+    // }
+    cv_host_keypoints.push_back(
+        pnec::features::KeyPointToCV(host_keypoints[idx]));
+    cv_target_keypoints.push_back(
+        pnec::features::KeyPointToCV(target_keypoints[idx]));
+
+    cv::Mat cov;
+    cv::eigen2cv(target_keypoints[idx].img_covariance_, cov);
+    covariances.push_back(cov);
+    cv_matches.push_back(cv::DMatch(counter, counter, 0.0));
+    counter++;
   }
+  BOOST_LOG_TRIVIAL(info) << "number of matches: " << cv_matches.size();
 
-  cv::Mat inlier_img;
-  cv::drawMatches(im1, host_kps, im2, target_kps, inlier_matches, inlier_img);
+  cv::Mat image;
+  cv::drawMatches(host_frame->getImage(), cv_host_keypoints,
+                  target_frame->getImage(), cv_target_keypoints, cv_matches,
+                  image);
 
-  for (const auto &inlier : inlier_matches) {
-    if (covariances[inlier.trainIdx](0, 0) >= 0.0) {
-      cv::Mat cv_cov;
-      cv::eigen2cv(covariances[inlier.trainIdx], cv_cov);
-      cv::RotatedRect ellipse = pnec::visualization::GetErrorEllipse(
-          2.4477,
-          target_kps[inlier.trainIdx].pt +
-              cv::Point2f(inlier_img.cols / 2.0, 0.0),
-          cv_cov);
-      cv::ellipse(inlier_img, ellipse, cv::Scalar(255, 0, 0), 1);
-    }
+  // draw covariances
+  BOOST_LOG_TRIVIAL(info) << "number of covariances: " << covariances.size();
+  for (size_t idx = 0; idx < covariances.size(); idx++) {
+    cv::Mat covariance = covariances[idx];
+    cv::RotatedRect ellipse = pnec::visualization::GetErrorEllipse(
+        2.4477 * 10,
+        cv_target_keypoints[idx].pt + cv::Point2f(image.cols / 2.0, 0.0),
+        covariance);
+    cv::ellipse(image, ellipse, cv::Scalar(255, 0, 0), 2);
   }
-
-  cv::Mat img;
-  cv::vconcat(matches_img, inlier_img, img);
 
   double s = 1.0f;
-  cv::Size size(s * img.cols, s * img.rows);
-  resize(img, img, size);
-  cv::namedWindow(window_name, cv::WINDOW_AUTOSIZE);
-  cv::imshow(window_name, img);
-  char key = cv::waitKey(0);
-  if (key == 's') {
-    cv::imwrite("default location" + window_name + ".png", img);
-  }
-  cv::destroyAllWindows();
-  cv::destroyWindow(window_name);
+  cv::Size size(s * image.cols, s * image.rows);
+  resize(image, image, size);
+  cv::namedWindow(image_name, cv::WINDOW_AUTOSIZE);
+  cv::imshow(image_name, image);
+  char key = cv::waitKey(10);
+  // if (key == 's') {
+  cv::imwrite("/storage/user/muhled/outputs/pnec/keypoint_visualization/" +
+                  image_name + ".png",
+              image);
+  // }
+  cv::destroyWindow(image_name);
   return key;
 }
+
+// char plotMatches(pnec::frames::BaseFrame::Ptr host_frame,
+//                  pnec::frames::BaseFrame::Ptr target_frame,
+//                  pnec::FeatureMatches &id_matches, std::vector<int> &inliers,
+//                  std::string suffix) {
+//   std::string window_name = std::to_string(target_frame->id()) + "_" +
+//                             std::to_string(host_frame->id()) + suffix;
+
+//   auto im1 = host_frame->getImage();
+//   auto im2 = target_frame->getImage();
+//   std::vector<cv::KeyPoint> host_kps;
+//   std::vector<cv::KeyPoint> target_kps;
+//   std::vector<cv::DMatch> idx_matches;
+//   std::vector<cv::DMatch> inlier_idx_matches;
+
+//   for (auto const &[id, keypoint] : host_frame->keypoints()) {
+//     host_kps.push_back(pnec::features::KeyPointToCV(keypoint));
+//   }
+//   for (auto const &[id, keypoint] : target_frame->keypoints()) {
+//     target_kps.push_back(pnec::features::KeyPointToCV(keypoint));
+//   }
+
+//   for (const auto match : id_matches) {
+//     size_t host_idx =
+//         std::distance(host_frame->keypoints().begin(),
+//                       host_frame->keypoints().find(match.queryIdx));
+//     size_t target_idx =
+//         std::distance(target_frame->keypoints().begin(),
+//                       target_frame->keypoints().find(match.trainIdx));
+//     idx_matches.push_back(cv::DMatch(host_idx, target_idx, 0.0));
+//   }
+
+//   std::vector<Eigen::Matrix2d> covariances;
+//   for (auto const &[id, keypoint] : target_frame->keypoints()) {
+//     covariances.push_back(keypoint.img_covariance_);
+//   }
+
+//   pnec::FeatureMatches inlier_matches;
+//   for (const auto &inlier : inliers) {
+//     inlier_matches.push_back(id_matches[inlier]);
+//   }
+
+//   cv::Mat matches_img;
+//   cv::drawMatches(im1, host_kps, im2, target_kps, id_matches, matches_img);
+
+//   for (const auto &match : id_matches) {
+//     if (covariances[match.trainIdx](0, 0) >= 0.0) {
+//       cv::Mat cv_cov;
+//       cv::eigen2cv(covariances[match.trainIdx], cv_cov);
+//       cv::RotatedRect ellipse = pnec::visualization::GetErrorEllipse(
+//           2.4477,
+//           target_kps[match.trainIdx].pt +
+//               cv::Point2f(matches_img.cols / 2.0, 0.0),
+//           cv_cov);
+//       cv::ellipse(matches_img, ellipse, cv::Scalar(255, 0, 0), 1);
+//     }
+//   }
+
+//   cv::Mat inlier_img;
+//   cv::drawMatches(im1, host_kps, im2, target_kps, inlier_matches,
+//   inlier_img);
+
+//   for (const auto &inlier : inlier_matches) {
+//     if (covariances[inlier.trainIdx](0, 0) >= 0.0) {
+//       cv::Mat cv_cov;
+//       cv::eigen2cv(covariances[inlier.trainIdx], cv_cov);
+//       cv::RotatedRect ellipse = pnec::visualization::GetErrorEllipse(
+//           2.4477,
+//           target_kps[inlier.trainIdx].pt +
+//               cv::Point2f(inlier_img.cols / 2.0, 0.0),
+//           cv_cov);
+//       cv::ellipse(inlier_img, ellipse, cv::Scalar(255, 0, 0), 1);
+//     }
+//   }
+
+//   cv::Mat img;
+//   cv::vconcat(matches_img, inlier_img, img);
+
+//   double s = 1.0f;
+//   cv::Size size(s * img.cols, s * img.rows);
+//   resize(img, img, size);
+//   cv::namedWindow(window_name, cv::WINDOW_AUTOSIZE);
+//   cv::imshow(window_name, img);
+//   char key = cv::waitKey(0);
+//   if (key == 's') {
+//     cv::imwrite("default location" + window_name + ".png", img);
+//   }
+//   cv::destroyAllWindows();
+//   cv::destroyWindow(window_name);
+//   return key;
+// }
 
 // char plotCovariancess(pnec::frames::BaseFrame::Ptr curr_frame,
 //                       pnec::FeatureMatches &matches, std::vector<int>

@@ -48,6 +48,7 @@
 #include <Eigen/Core>
 
 #include "camera.h"
+#include "common.h"
 #include "keypoints.h"
 
 namespace pnec {
@@ -90,6 +91,14 @@ protected:
 
   pnec::features::KeyPoints keypoints_;
 };
+
+// helper
+void GetInlierKeyPoints(
+    pnec::frames::BaseFrame::Ptr host_frame,
+    pnec::frames::BaseFrame::Ptr target_frame, pnec::FeatureMatches matches,
+    std::vector<int> inliers,
+    std::vector<pnec::features::KeyPoint> &inlier_host_frame,
+    std::vector<pnec::features::KeyPoint> &inlier_target_frame);
 } // namespace frames
 } // namespace pnec
 

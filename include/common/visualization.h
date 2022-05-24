@@ -49,8 +49,8 @@ namespace visualization {
 cv::RotatedRect GetErrorEllipse(double chisquare_val, cv::Point2f mean,
                                 cv::Mat covmat);
 
-char plotMatches(pnec::frames::BaseFrame::Ptr prev_frame,
-                 pnec::frames::BaseFrame::Ptr curr_frame,
+char plotMatches(pnec::frames::BaseFrame::Ptr host_frame,
+                 pnec::frames::BaseFrame::Ptr target_frame,
                  pnec::FeatureMatches &matches, std::vector<int> &inliers,
                  std::string suffix);
 

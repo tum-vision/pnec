@@ -9,21 +9,21 @@ do
         gt) use_ground_trutn${OPTARG};;
     esac
 done
-: "${dataset_path:="{default location of sequences e.g. [...]/kitti/sequences/}"}"
-: "${results_path:="{default location of results}"}"
+: "${dataset_path:="/storage/group/dataset_mirrors/kitti_odom_grey/sequences/"}"
+: "${results_path:="/storage/user/muhled/outputs/pnec/keypoint_visualization"}"
 : "${starting_value:=0}"
-: "${iterations:="10"}"
+: "${iterations:="1"}"
 : "${no_skip:="true"}"
 : "${use_ground_truth:="false"}"
 
 tracking_config_path="data/tracking/KITTI"
-tracking_calib_path="third_party/basalt/data/kitti_calib.json"
+tracking_calib_path="data/tracking/KITTI/kitti_calib.json"
 config_path="data"
 pnec_config="${config_path}/test_config.yaml"
 
 #sequence_nums=(1 2 3 5 6 7 8 9 10)
 #sequence_nums=(3 4 6 7 9 10)
-sequence_nums=(3)
+sequence_nums=(4)
 #sequence_nums=(3 4 6)
 #sequence_nums=(4)
 sequences=("00" "01" "02" "03" "04" "05" "06" "07" "08" "09" "10")
@@ -32,9 +32,9 @@ for sequence_num in "${sequence_nums[@]}"
 do
     sequence=${sequences[sequence_num]}
     tracking_path="${tracking_config_path}/${sequence}.json"
-    images_path="${dataset_path}/${sequence}/image_2"
+    images_path="${dataset_path}/${sequence}/image_0"
     timestamp_path="${dataset_path}/${sequence}/times.txt"
-    gt_path="${dataset_path}/${sequence}/${sequence}.txt"
+    gt_path="${dataset_path}/${sequence}/poses.txt"
     gt=""
 
     if [ ${use_ground_truth} == "true" ]

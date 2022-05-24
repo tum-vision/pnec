@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <tbb/blocked_range.h>
 #include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_vector.h>
 #include <tbb/parallel_for.h>
 
 #include <basalt/optical_flow/optical_flow.h>
@@ -163,13 +164,13 @@ public:
       covariances.clear();
       hessians.clear();
 
-      std::cout << "Tracking patches" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "Tracking patches";
       for (size_t i = 0; i < /*calib.intrinsics.size()*/ 1; i++) {
         trackPoints(old_pyramid->at(i), pyramid->at(i),
                     transforms->observations[i],
                     new_transforms->observations[i]);
       }
-      std::cout << "Finished Tracking" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "Finished Tracking";
 
       transforms = new_transforms;
       int num_tracked_points = transforms->observations[0].size();
@@ -207,6 +208,9 @@ public:
       ids.push_back(kv.first);
       init_vec.push_back(kv.second.transform);
     }
+
+    tbb::concurrent_vector<KeypointId> marked_for_deletion;
+    marked_for_deletion.reserve(patches.size());
 
     tbb::concurrent_unordered_map<KeypointId, PNECObservation,
                                   std::hash<KeypointId>>
@@ -248,24 +252,33 @@ public:
           }
         }
         // remove id from patches to save memory footprint
-        if (!valid && patches.count(id) > 0) {
-          BOOST_LOG_TRIVIAL(debug) << "Trying to delete keypoint with id " << id
-                                   << " that isn't valid ";
-          patches.erase(id);
+        if (!valid) {
+          marked_for_deletion.push_back(id);
+          // BOOST_LOG_TRIVIAL(debug) << "Trying to delete keypoint with id " <<
+          // id
+          //                          << " that isn't valid ";
+          // patches.erase(id);
         }
       }
     };
 
     tbb::blocked_range<size_t> range(0, num_points);
 
-    std::cout << "Track parallel" << std::endl;
+    BOOST_LOG_TRIVIAL(debug) << "Track parallel";
     tbb::parallel_for(range, compute_func);
-    std::cout << "Finished tracking parallel" << std::endl;
+    BOOST_LOG_TRIVIAL(debug) << "Finished tracking parallel";
     // compute_func(range);
+
+    BOOST_LOG_TRIVIAL(debug) << "Deleting " << marked_for_deletion.size()
+                             << " patches with invalid tracks.";
+    for (const auto id : marked_for_deletion) {
+      if (patches.count(id) > 0) {
+        patches.erase(id);
+      }
+    }
 
     transform_map_2.clear();
     transform_map_2.insert(result.begin(), result.end());
-    std::cout << transform_map_2.size();
   }
 
   inline bool trackPoint(const basalt::ManagedImagePyr<uint16_t> &pyr,
