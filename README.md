@@ -1,5 +1,5 @@
 <h2 align="center">The Probabilistic Normal Epipolar Constraint for Frame-To-Frame Rotation Optimization under Uncertain Feature Positions</h2>
-<hr>
+
 <p align="center">
     <a href="https://vision.in.tum.de/members/muhled">Dominik Muhle</a><sup>1*</sup> &emsp;
     <a href="https://lukaskoestler.com">Lukas Koestler</a><sup>1*</sup> &emsp;
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-    IEEE / CVF Computer Vision and Pattern Recognition Conference (CVPR) 2022, New Orleans, USA
+    IEEE / CVF Conference on Computer Vision and Pattern Recognition (CVPR) 2022, New Orleans, USA
 </p>
 <p align="center">
     <a href="https://arxiv.org/abs/2204.02256">arXiv</a> |
