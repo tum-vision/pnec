@@ -6,13 +6,14 @@
 # Copyright (c) 2022, Dominik Muhle.
 # All rights reserved.
 
+from typing import List, Tuple
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
-import numpy as np
-from pnec.plotting.FigureSize import FigureSize
 from matplotlib.lines import Line2D
-from typing import Tuple, List
+from pnec.plotting.FigureSize import FigureSize
 
 
 def MetricScatter(metrics, name1, name2, path):
@@ -119,7 +120,7 @@ def VerboseSequenceMetric(metrics, path):
 
 
 def DatasetScatter(dataset_metrics, algorithms, path, file_prefix='', normalized=False):
-    plt.style.use('tex')
+    plt.style.use("scripts/tex.mplstyle")
     plt.style.use('seaborn')
     sns.set_context("talk")
     sns.set_style("white")
@@ -204,7 +205,7 @@ def DatasetMetric(results: pd.DataFrame, colors: List, std_dev: pd.DataFrame = N
     plt.style.use('seaborn')
     sns.set_context("talk")
     sns.set_style("white")
-    plt.style.use('tex')
+    plt.style.use("scripts/tex.mplstyle")
 
     fig, ax = plt.subplots(1, 1, figsize=figsize,
                            constrained_layout=False)

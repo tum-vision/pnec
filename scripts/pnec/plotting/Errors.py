@@ -6,14 +6,15 @@
 # Copyright (c) 2022, Dominik Muhle.
 # All rights reserved.
 
+from datetime import datetime
+from math import pi
+from typing import Dict, List
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
-import numpy as np
-from math import pi
-from datetime import datetime
 from pnec.plotting.FigureSize import FigureSize
-from typing import Dict, List
 
 
 def groundTruthTimestamps(ground_truth: pd.DataFrame):
@@ -110,12 +111,10 @@ def Frame2FrameError(ground_truth: pd.DataFrame, estimated: Dict[str, pd.DataFra
     plt.style.use('seaborn')
     sns.set_context("talk")
     sns.set_style("white")
-    plt.style.use('tex')
+    plt.style.use("scripts/tex.mplstyle")
 
     plt.close()
     fig, axs = plt.subplots(2, 1, figsize=figsize)
-
-    # gt_timestamps = groundTruthTimestamps(ground_truth)
 
     for (name, result), color, linestyle in zip(estimated.items(), colors, linestyles):
         errors = getErrors(ground_truth, result)
@@ -142,8 +141,8 @@ def CummulativeError(ground_truth: pd.DataFrame, estimated: Dict[str, pd.DataFra
     assert len(colors) == len(linestyles)
     plt.style.use('seaborn')
     sns.set_context("talk")
-    sns.set_style("white")
-    plt.style.use('tex')
+    sns.set_style('white')
+    plt.style.use("scripts/tex.mplstyle")
 
     plt.close()
     fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -167,7 +166,7 @@ def CompF2Ferror(ground_truth: pd.DataFrame, estimated: Dict[str, pd.DataFrame],
     plt.style.use('seaborn')
     sns.set_context("talk")
     sns.set_style("white")
-    plt.style.use('tex')
+    plt.style.use("scripts/tex.mplstyle")
 
     plt.close()
     fig, axs = plt.subplots(2, 1, figsize=figsize)

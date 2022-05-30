@@ -6,29 +6,14 @@
 # Copyright (c) 2022, Dominik Muhle.
 # All rights reserved.
 
-import numpy as np
-import sophus as sp
-from itertools import tee
-import pandas as pd
-from math import pow, sqrt
-from scipy.spatial.transform import Rotation as R
 from datetime import datetime
+from itertools import tee
+from math import pow, sqrt
 
-
-# def get_correction(match):
-#     """compute correction transformation so that the estimated pose will be aligned with the ground truth pose
-
-#     Args:
-#         match (pandas Dataframe): single row of a pandas dataframe that holds single matched poses
-
-#     Returns:
-#         scipy Rotation, numpy array: relative orientation, relative translation
-#     """
-#     orientation_correction = match["orientation_gt"] * \
-#         match["orientation_est"].inv()
-#     position_correction = match["position_gt"] - \
-#         orientation_correction.apply(match["position_est"])
-#     return orientation_correction, position_correction
+import numpy as np
+import pandas as pd
+import sophus as sp
+from scipy.spatial.transform import Rotation as R
 
 
 def correct_coordinate_system(poses, correction_transform):
@@ -43,15 +28,6 @@ def correct_coordinate_system(poses, correction_transform):
         pandas Dataframe: dataframe with corrected poses
     """
     return poses.apply(lambda pose: correction_transform * pose, axis=1)
-
-    # for index, pose in poses.iterrows():
-    #     new_orientation: R = orientation_correction * pose["orientation"]
-    #     new_position = orientation_correction.apply(
-    #         pose["position"]) + position_correction
-    #     poses.at[index, "orientation"] = new_orientation
-    #     poses.at[index, "position"] = new_position
-
-    # return poses
 
 
 def correct_matched_poses(matched_poses):
@@ -82,32 +58,6 @@ def correct_matched_poses(matched_poses):
         columns={"orientation_gt": "orientation", "position_gt": "position"}), corrected_estimated
 
 
-# def flip_estimated(estimated, flip_yaw=False, flip_pitch=False, flip_roll=False):
-#     """flip orientation at yaw, pitch and roll if necessary
-
-#     Args:
-#         estimated (pandas Dataframe): dataframe that holds the poses that need to be flipped
-#         flip_yaw (bool, optional): set true if you want to flip yaw. Defaults to False.
-#         flip_pitch (bool, optional): set true if you want to flip pitch. Defaults to False.
-#         flip_roll (bool, optional): set true if you want to flip roll. Defaults to False.
-
-#     Returns:
-#         pandas Dataframe: dataframe with flipped orientations
-#     """
-#     for index, pose in estimated.iterrows():
-#         yaw, pitch, roll = pose["orientation"].as_euler(
-#             'ZYX', degrees=True)
-#         if flip_yaw:
-#             yaw = - yaw
-#         if flip_pitch:
-#             pitch = - pitch
-#         if flip_roll:
-#             roll = -roll
-#         estimated.at[index, 'orientation'] = R.from_euler(
-#             'ZYX', [yaw, pitch, roll], degrees=True)
-#     return estimated
-
-
 def correct_position(matched_poses):
     """Estimate the trajectory using the estimated orientations and the ground truth relative translations between
     poses.
@@ -132,13 +82,6 @@ def correct_position(matched_poses):
         curr_poses["poses_est"].setTranslation(
             prev_poses["poses_est"] * gt_translation)
 
-        # relative_ground_truth_translation = prev_poses['orientation_gt'].inv().apply(
-        #     curr_poses['position_gt'] - prev_poses['position_gt'])
-
-        # new_position = prev_poses['orientation_est'].apply(
-        #     relative_ground_truth_translation) + prev_poses['position_est']
-        # matched_poses.at[index, "position_est"] = new_position
-
     return matched_poses
 
 
@@ -156,8 +99,6 @@ def rotation_difference(prev_pose, curr_pose):
         sp.SO3: the rotational error as a SO3 object
     """
     return (prev_pose["poses_gt"].so3().inverse() * curr_pose["poses_gt"].so3()).inverse() * (prev_pose["poses_est"].so3().inverse() * curr_pose["poses_est"].so3())
-    # return (prev_pose["orientation_gt"].inv() * curr_pose["orientation_gt"]).inv() * (prev_pose["orientation_est"].inv()
-    #                                                                                   * curr_pose["orientation_est"])
 
 
 def rotation_mse(poses, distance):

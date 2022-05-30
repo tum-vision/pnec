@@ -54,6 +54,9 @@ struct FrameTiming {
            "CERES OPTIMIZATION TOTAL";
   }
 
+  int OptimizationTime() const;
+  int TotalTime() const;
+
   int id_;
   std::chrono::milliseconds frame_loading_ = std::chrono::milliseconds(0);
   std::chrono::milliseconds feature_creation_ = std::chrono::milliseconds(0);

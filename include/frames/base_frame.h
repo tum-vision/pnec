@@ -36,6 +36,7 @@
 #ifndef FRAMES_BASE_FRAME_H_
 #define FRAMES_BASE_FRAME_H_
 
+#include <boost/log/trivial.hpp>
 #include <cstdint>
 #include <exception>
 #include <iostream>
@@ -47,6 +48,7 @@
 #include <Eigen/Core>
 
 #include "camera.h"
+#include "keypoints.h"
 
 namespace pnec {
 namespace frames {
@@ -57,21 +59,13 @@ public:
   BaseFrame(int id, double timestamp, const std::string path)
       : id_(id), timestamp_{timestamp}, path_(path) {}
 
-  ~BaseFrame() { std::cout << "Getting rid of frame " << id_ << std::endl; }
+  ~BaseFrame() { BOOST_LOG_TRIVIAL(debug) << "Getting rid of frame " << id_; }
 
-  std::vector<cv::KeyPoint> &keypoints() { return keypoints_; }
-  std::vector<uint32_t> &keypoint_ids() { return keypoint_ids_; }
+  pnec::features::KeyPoints &keypoints() { return keypoints_; }
+
+  pnec::features::KeyPoints keypoints(std::vector<size_t> &ids);
+
   double Timestamp() { return timestamp_; }
-
-  std::vector<cv::KeyPoint> &undistortedKeypoints() {
-    return undistorted_keypoints_;
-  }
-  std::vector<Eigen::Matrix2d> &covariances() { return covariances_; }
-
-  std::vector<Eigen::Vector3d> &ProjectedPoints() { return projected_points_; }
-  std::vector<Eigen::Matrix3d> &ProjectedCovariances() {
-    return projected_covariances_;
-  }
 
   int id() const { return id_; }
 
@@ -82,24 +76,11 @@ public:
   void PlotFeatures();
 
 protected:
-  void undistortKeypoints();
-
-  void UnscentedTransform();
-
   const int id_;
   const double timestamp_;
   const std::string path_;
 
-  // Before the unscented Transform
-  std::vector<cv::KeyPoint> keypoints_;
-  std::vector<uint32_t> keypoint_ids_;
-
-  std::vector<cv::KeyPoint> undistorted_keypoints_;
-  std::vector<Eigen::Matrix2d> covariances_;
-
-  // After the Unscented Transform
-  std::vector<Eigen::Matrix3d> projected_covariances_;
-  std::vector<Eigen::Vector3d> projected_points_;
+  pnec::features::KeyPoints keypoints_;
 };
 } // namespace frames
 } // namespace pnec

@@ -43,6 +43,6 @@ def FigureSize(width, fraction=1, subplots=(1, 1)):
     # Figure height in inches
     fig_height_in = fig_width_in * golden_ratio * (subplots[0] / subplots[1])
 
-    print(f"width, height: {fig_width_in * 72.27} {fig_height_in * 72.27}")
+#     print(f"width, height: {fig_width_in * 72.27} {fig_height_in * 72.27}")
 
     return (fig_width_in, fig_height_in)

@@ -1,0 +1,14 @@
+text.usetex: true
+font.family: serif
+font.serif: [Times]
+font.sans-serif: [Helvetica]
+axes.titlesize: 8
+axes.labelsize: 8
+font.size: 8
+legend.fontsize: 6
+axes.labelpad: 2.0
+axes.linewidth: 0.6
+xtick.labelsize: 6
+ytick.labelsize: 6
+xtick.major.pad: -7.0
+ytick.major.pad: -7.0

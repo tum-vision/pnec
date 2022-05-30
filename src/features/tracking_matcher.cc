@@ -46,26 +46,20 @@ TrackingMatcher::TrackingMatcher(int sufficient_matches, double min_local_rad)
 TrackingMatcher::~TrackingMatcher() {}
 
 pnec::FeatureMatches
-TrackingMatcher::FindMatches(pnec::frames::BaseFrame::Ptr prev_frame,
-                             pnec::frames::BaseFrame::Ptr curr_frame,
+TrackingMatcher::FindMatches(pnec::frames::BaseFrame::Ptr host_frame,
+                             pnec::frames::BaseFrame::Ptr target_frame,
                              bool &skipping) const {
   pnec::FeatureMatches matches;
-  // find matching keypoint ids, store them in curr2prev_map
-  for (int prev_idx = 0; prev_idx < prev_frame->keypoint_ids().size();
-       prev_idx++) {
-    for (int curr_idx = 0; curr_idx < curr_frame->keypoint_ids().size();
-         curr_idx++) {
-      uint32_t prev_keypoint_id = prev_frame->keypoint_ids()[prev_idx];
-      uint32_t curr_keypoint_id = curr_frame->keypoint_ids()[curr_idx];
-
-      if (prev_keypoint_id > curr_keypoint_id) {
+  for (auto const &[host_kp_id, host_kp] : host_frame->keypoints()) {
+    for (auto const &[target_kp_id, target_kp] : target_frame->keypoints()) {
+      if (host_kp_id > target_kp_id) {
         continue;
       }
-      if (prev_keypoint_id == curr_keypoint_id) {
-        matches.push_back(cv::DMatch(prev_idx, curr_idx, 0));
+      if (host_kp_id == target_kp_id) {
+        matches.push_back(cv::DMatch(host_kp_id, target_kp_id, 0));
         break;
       }
-      if (prev_keypoint_id < curr_keypoint_id) {
+      if (host_kp_id < target_kp_id) {
         break;
       }
     }
@@ -75,9 +69,9 @@ TrackingMatcher::FindMatches(pnec::frames::BaseFrame::Ptr prev_frame,
   std::vector<double> dists;
   dists.reserve(matches.size());
   for (auto match : matches) {
-    const auto &prev_p = prev_frame->undistortedKeypoints()[match.queryIdx];
-    const auto &curr_p = curr_frame->undistortedKeypoints()[match.trainIdx];
-    double d = cv::norm(prev_p.pt - curr_p.pt);
+    const auto &host_pt = host_frame->keypoints()[match.queryIdx].point_;
+    const auto &target_pt = target_frame->keypoints()[match.trainIdx].point_;
+    double d = (host_pt - target_pt).norm();
     dists.push_back(d);
   }
 
@@ -89,8 +83,56 @@ TrackingMatcher::FindMatches(pnec::frames::BaseFrame::Ptr prev_frame,
   } else {
     skipping = false;
   }
+
   return matches;
 }
+
+// pnec::FeatureMatches
+// TrackingMatcher::FindMatches(pnec::frames::BaseFrame::Ptr prev_frame,
+//                              pnec::frames::BaseFrame::Ptr curr_frame,
+//                              bool &skipping) const {
+//   pnec::FeatureMatches matches;
+//   // find matching keypoint ids, store them in curr2prev_map
+//   for (int prev_idx = 0; prev_idx < prev_frame->keypoint_ids().size();
+//        prev_idx++) {
+//     for (int curr_idx = 0; curr_idx < curr_frame->keypoint_ids().size();
+//          curr_idx++) {
+//       uint32_t prev_keypoint_id = prev_frame->keypoint_ids()[prev_idx];
+//       uint32_t curr_keypoint_id = curr_frame->keypoint_ids()[curr_idx];
+
+//       if (prev_keypoint_id > curr_keypoint_id) {
+//         continue;
+//       }
+//       if (prev_keypoint_id == curr_keypoint_id) {
+//         matches.push_back(cv::DMatch(prev_idx, curr_idx, 0));
+//         break;
+//       }
+//       if (prev_keypoint_id < curr_keypoint_id) {
+//         break;
+//       }
+//     }
+//   }
+
+//   // find and update mean rad
+//   std::vector<double> dists;
+//   dists.reserve(matches.size());
+//   for (auto match : matches) {
+//     const auto &prev_p = prev_frame->undistortedKeypoints()[match.queryIdx];
+//     const auto &curr_p = curr_frame->undistortedKeypoints()[match.trainIdx];
+//     double d = cv::norm(prev_p.pt - curr_p.pt);
+//     dists.push_back(d);
+//   }
+
+//   double m_local_rad =
+//       std::accumulate(dists.begin(), dists.end(), 0.0) / dists.size();
+
+//   if (m_local_rad < min_local_rad_) {
+//     skipping = true;
+//   } else {
+//     skipping = false;
+//   }
+//   return matches;
+// }
 
 } // namespace features
 } // namespace pnec

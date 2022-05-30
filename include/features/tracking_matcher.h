@@ -46,8 +46,8 @@ public:
   TrackingMatcher(int sufficient_matches, double min_local_rad);
   ~TrackingMatcher();
 
-  pnec::FeatureMatches FindMatches(pnec::frames::BaseFrame::Ptr frame1,
-                                   pnec::frames::BaseFrame::Ptr frame2,
+  pnec::FeatureMatches FindMatches(pnec::frames::BaseFrame::Ptr host_frame,
+                                   pnec::frames::BaseFrame::Ptr target_frame,
                                    bool &skipping) const override;
 
 private:

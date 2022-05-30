@@ -6,12 +6,13 @@
 # Copyright (c) 2022, Dominik Muhle.
 # All rights reserved.
 
+from typing import Dict, List, Tuple
+
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import seaborn as sns
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Tuple
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
 from pnec.helper import set_axes_equal
 from pnec.plotting.FigureSize import FigureSize
 
@@ -26,7 +27,7 @@ def Trajectory2D(ground_truth: pd.DataFrame, axes: Tuple, estimated: Dict[str, p
     plt.style.use('seaborn')
     sns.set_context("talk")
     sns.set_style("white")
-    plt.style.use('tex')
+    plt.style.use("scripts/tex.mplstyle")
 
     helper = {'x': 0, 'y': 1, 'z': 2}
     ax1 = helper[axes[0][-1]]

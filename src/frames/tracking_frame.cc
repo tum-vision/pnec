@@ -37,10 +37,11 @@
 
 #include <ctime>
 
-#include "camera.h"
-#include "converter.h"
 #include <opencv2/features2d.hpp>
 #include <opencv2/opencv.hpp>
+
+#include "camera.h"
+#include "converter.h"
 
 namespace pnec {
 namespace frames {
@@ -56,18 +57,10 @@ void TrackingFrame::FindFeatures(pnec::common::FrameTiming &frame_timing) {
   frame_timing.frame_loading_ =
       std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic);
 
-  basalt::OpticalFlowResult::Ptr result = tracking_.processFrame(id_, img_ptr);
+  basalt::PNECOpticalFlowResult::Ptr result =
+      tracking_.processFrame(id_, img_ptr);
 
-  pnec::converter::KeypointsFromOpticalFlow(result, keypoints_, keypoint_ids_);
-
-  auto result_cov = tracking_.Covariances();
-  if (result_cov[0].size() != 0) {
-    for (const auto &covariance : result_cov[0]) {
-      covariances_.push_back(covariance.second.cast<double>());
-    }
-  }
-
-  tracking_.DeleteOldKeypoints();
+  keypoints_ = pnec::converter::KeyPointsFromOpticalFlow(result, true);
 }
 } // namespace frames
 } // namespace pnec

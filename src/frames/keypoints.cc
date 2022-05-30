@@ -33,53 +33,37 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef COMMON_VISUALIZATION_H_
-#define COMMON_VISUALIZATION_H_
+#include "keypoints.h"
 
-#include <string.h>
-#include <vector>
-
-#include <opencv2/opencv.hpp>
-
-#include "base_frame.h"
 #include "common.h"
+#include <opencv2/core/eigen.hpp>
 
 namespace pnec {
-namespace visualization {
-struct Options {
-  enum VisualizationLevel { NO, INLIER, TRACKED, ALL };
+namespace features {
+KeyPoint::KeyPoint(Eigen::Vector2d point, Eigen::Matrix2d covariance,
+                   Eigen::Matrix3d hessian)
+    : point_(point), img_covariance_(covariance), hessian_(hessian) {
+  Unproject();
+}
 
-  Options(std::string folder,
-          Options::VisualizationLevel kp_level =
-              Options::VisualizationLevel::INLIER,
-          Options::VisualizationLevel cov_level =
-              Options::VisualizationLevel::INLIER)
-      : base_folder(folder), keypoints(kp_level), covariances(cov_level) {
-    // only visualize covariances for which the keypoints are also visualized
-    if (covariances > keypoints) {
-      covariances = keypoints;
-    }
-  }
-  std::string base_folder;
+void KeyPoint::Unproject() {
+  Eigen::Matrix3d K;
+  cv::cv2eigen(pnec::Camera::instance().cameraParameters().intrinsic(), K);
+  Eigen::Matrix3d K_inv = K.inverse();
 
-  VisualizationLevel keypoints;
-  VisualizationLevel covariances;
-  cv::Scalar inlier_color = cv::Scalar(0, 255, 0);
-  cv::Scalar tracked_color = cv::Scalar(0, 0, 255);
-  cv::Scalar covariance_color = cv::Scalar(255, 0, 0);
-  double cov_scaling = 2.4477 * 10.0;
-  int cov_thickness = 2;
-};
+  bearing_vector_ = pnec::common::Unproject(point_, K_inv);
 
-cv::RotatedRect GetErrorEllipse(double chisquare_val, cv::Point2f mean,
-                                cv::Mat covmat);
+  Eigen::Vector3d mu(point_(0), point_(1), 1.0);
 
-char plotMatches(pnec::frames::BaseFrame::Ptr host_frame,
-                 pnec::frames::BaseFrame::Ptr target_frame,
-                 pnec::FeatureMatches &matches, std::vector<int> &inliers,
-                 pnec::visualization::Options visualization_options,
-                 std::string suffix);
-} // namespace visualization
+  Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
+  cov.topLeftCorner(2, 2) = img_covariance_;
+  bv_covariance_ = pnec::common::UnscentedTransform(mu, cov, K_inv, 1.0,
+                                                    pnec::common::Pinhole);
+}
+
+cv::KeyPoint KeyPointToCV(const KeyPoint &keypoint) {
+  return cv::KeyPoint(keypoint.point_(0), keypoint.point_(1), 1.0);
+}
+
+} // namespace features
 } // namespace pnec
-
-#endif // COMMON_VISUALIZATION_H_

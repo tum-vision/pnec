@@ -6,31 +6,34 @@
 # Copyright (c) 2022, Dominik Muhle.
 # All rights reserved.
 
-import pandas as pd
-import matplotlib.pyplot as plt
 import argparse
-import numpy as np
-import seaborn as sns
-
+from functools import partial
 from pathlib import Path
-from pnec.plotting import Trajectories, YPR, Metrics, Errors
-from pnec.plotting.FigureSize import FigureSize
-from pnec.visual_odometry.io.evaluate_run import read_poses
 from typing import List
 
-from pnec.visual_odometry.io.evaluate_run import evaluate_run
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+from pnec.plotting import YPR, Errors, Metrics, Trajectories
+from pnec.plotting.FigureSize import FigureSize
+from pnec.visual_odometry.io.evaluate_run import (evaluate_run,
+                                                  pose_from_matrix,
+                                                  pose_from_quat, read_poses)
 
 
-def main(sequence_dir, sequence, methods: List[str]):
+def main(sequence_dir: Path, sequence: str, methods: List[str], skip_if_present: bool):
     colors = sns.color_palette('bright')[:len(methods)]
     linestyles = ['--', '-.', ':',
                   (0, (1, 10)), (0, (5, 10)), (0, (5, 5)), (0, (3, 10, 1, 10))][:len(methods)]
     fig_size = FigureSize(
         'thesis', subplots=(1, 1), fraction=1/2)
 
-    gt_path = Path(
-        "/Volumes/Samsung_T5/results/repeat/KITTI/" + sequence + "/poses.txt")
-    ground_truth = read_poses(gt_path)
+    gt_path = sequence_dir.joinpath("poses.txt")
+    pose_from_text = partial(pose_from_matrix, format=(3, 4))
+    ground_truth = read_poses(gt_path, pose_from_text,
+                              timing_path=sequence_dir.joinpath("times.txt"))
 
     for iteration_dir in sorted(sequence_dir.iterdir()):
         if not iteration_dir.is_dir():
@@ -43,7 +46,7 @@ def main(sequence_dir, sequence, methods: List[str]):
         trajectories = {}
         for method in methods:
             _, trajectory = evaluate_run(
-                method, iteration_dir.joinpath("ablation"), gt_path)
+                method, iteration_dir.joinpath("ablation"), gt_path, skip_if_present)
             trajectories[method] = trajectory
 
         # Plots
@@ -81,12 +84,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Evaluate performance of an algorithm on a dataset sequence')
     parser.add_argument("-d", "--dir", help="Base directory of all results",
-                        type=str, default="default path")
+                        type=str, default="/storage/user/muhled/outputs/pnec/refactor")
     parser.add_argument("-s", "--sequence", help="Sequence",
                         type=str, default="03")
     parser.add_argument("-m", '--methods', nargs='+',
                         default=['NEC', 'PNEC'])
+    parser.add_argument("-skip", "--skip-if-present", help="Skip methods that have already been evaluated",
+                        type=bool, default=False)
 
     args = parser.parse_args()
 
-    main(Path(args.dir).joinpath(args.sequence), args.sequence, args.methods)
+    main(Path(args.dir).joinpath(args.sequence),
+         args.sequence, args.methods, args.skip_if_present)

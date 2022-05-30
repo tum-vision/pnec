@@ -35,7 +35,7 @@ def YPR(ground_truth: pd.DataFrame, estimated: Dict[str, pd.DataFrame], colors: 
     plt.style.use('seaborn')
     sns.set_context("talk")
     sns.set_style("white")
-    plt.style.use('tex')
+    plt.style.use("scripts/tex.mplstyle")
 
     start = datetime.strptime(ground_truth['timestamp'].to_list()[
                               0], '%Y-%m-%d %H:%M:%S.%f')

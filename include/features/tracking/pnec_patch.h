@@ -125,7 +125,7 @@ template <typename Scalar, typename Pattern> struct POpticalFlowPatch {
       J_se2.row(i) = grad.row(i) * Jw_se2;
     }
 
-    Matrix3 H_se2 = J_se2.transpose() * J_se2;
+    H_se2 = J_se2.transpose() * J_se2;
     Matrix3 H_se2_inv;
     Matrix2 H_r2;
     H_r2 << H_se2(0, 0), H_se2(0, 1), H_se2(1, 0), H_se2(1, 1);
@@ -173,6 +173,7 @@ template <typename Scalar, typename Pattern> struct POpticalFlowPatch {
   VectorP data; // negative if the point is not valid
 
   Matrix3P H_se2_inv_J_se2_T;
+  Matrix3 H_se2;
   Matrix2 Cov;
 
   Scalar mean;

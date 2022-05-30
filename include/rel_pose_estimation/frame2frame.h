@@ -65,6 +65,9 @@ public:
                             Sophus::SE3d prev_rel_pose,
                             std::vector<int> &inliers, bool &success);
 
+  const std::map<std::string, std::vector<std::pair<double, Sophus::SE3d>>> &
+  GetAblationResults() const;
+
 private:
   Sophus::SE3d PNECAlign(const opengv::bearingVectors_t &bvs1,
                          const opengv::bearingVectors_t &bvs2,
@@ -86,12 +89,13 @@ private:
                    std::vector<Eigen::Matrix3d> &proj_covs);
 
 protected:
-  // Paramters
+  // Parameters
   pnec::rel_pose_estimation::Options options_;
 
   double curr_timestamp_;
 
-  std::map<std::string, Sophus::SE3d> prev_rel_poses_;
+  std::map<std::string, std::vector<std::pair<double, Sophus::SE3d>>>
+      ablation_rel_poses_;
 
   // Output values
   int ransac_iterations_;

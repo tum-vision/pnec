@@ -7,14 +7,16 @@
 # All rights reserved.
 
 import argparse
-from typing import List, Dict
 from pathlib import Path
-from matplotlib import axis
-import pandas as pd
-import numpy as np
-from pnec.plotting.FigureSize import FigureSize
+from typing import Dict, List
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
+from matplotlib import axis
+
+from pnec.plotting.FigureSize import FigureSize
 
 
 def plot(results: Dict[str, pd.DataFrame], colors: List, linestyles: List, figsize=FigureSize(
@@ -27,7 +29,7 @@ def plot(results: Dict[str, pd.DataFrame], colors: List, linestyles: List, figsi
     plt.style.use('seaborn')
     sns.set_context("talk")
     sns.set_style("white")
-    plt.style.use('tex')
+    plt.style.use("scripts/tex.mplstyle")
 
     plt.close()
     constraint = False

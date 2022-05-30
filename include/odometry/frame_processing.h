@@ -44,6 +44,7 @@
 #include "frame2frame.h"
 #include "view.h"
 #include "view_graph.h"
+#include "visualization.h"
 
 namespace pnec {
 namespace odometry {
@@ -61,9 +62,12 @@ public:
   FrameProcessing(
       pnec::odometry::ViewGraph::Ptr view_graph,
       pnec::rel_pose_estimation::Frame2Frame::Ptr f2f_pose_estimation,
-      pnec::features::BaseMatcher::Ptr matcher, bool no_skip = false)
+      pnec::features::BaseMatcher::Ptr matcher, bool no_skip = false,
+      pnec::visualization::Options visualization_options =
+          pnec::visualization::Options("."))
       : view_graph_{view_graph}, matcher_{matcher},
-        f2f_pose_estimation_{f2f_pose_estimation}, no_skip_{no_skip} {};
+        f2f_pose_estimation_{f2f_pose_estimation}, no_skip_{no_skip},
+        visualization_options_(visualization_options){};
 
   // Process a frame
   // return true if frame is added, otherwie false
@@ -79,13 +83,14 @@ private:
   pnec::features::BaseMatcher::Ptr matcher_;
   pnec::rel_pose_estimation::Frame2Frame::Ptr f2f_pose_estimation_;
 
-  // opencv imshow
-  VisualizationLevel visualization_level_;
-
   int skip_showing_n_;
   int skipping_counter_;
 
   bool no_skip_;
+
+  // opencv imshow
+  pnec::visualization::Options visualization_options_;
+  // VisualizationLevel visualization_level_;
 };
 } // namespace odometry
 } // namespace pnec

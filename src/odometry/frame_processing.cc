@@ -46,6 +46,7 @@
 
 #include "base_matcher.h"
 #include "common.h"
+#include "visualization.h"
 
 #define PLOT true
 
@@ -69,7 +70,7 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
     return true;
   }
 
-  pnec::frames::BaseFrame::Ptr curr_frame = curr_view->Frame();
+  pnec::frames::BaseFrame::Ptr target_frame = curr_view->Frame();
 
   const int curr_view_idx = m - 1;
   int prev_view_idx = curr_view_idx - skip - 1;
@@ -78,11 +79,13 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
 
   pnec::odometry::View::Ptr prev_view;
   view_graph_->GetViewByPos(prev_view_idx, prev_view);
-  pnec::frames::BaseFrame::Ptr prev_frame = prev_view->Frame();
+  pnec::frames::BaseFrame::Ptr host_frame = prev_view->Frame();
 
+  BOOST_LOG_TRIVIAL(debug) << "Finding matches between frames "
+                           << host_frame->id() << " and " << target_frame->id();
   bool skipping_frame;
   pnec::FeatureMatches matches =
-      matcher_->FindMatches(prev_frame, curr_frame, skipping_frame);
+      matcher_->FindMatches(host_frame, target_frame, skipping_frame);
 
   if (skipping_frame && !no_skip_) {
     return false;
@@ -91,19 +94,18 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   std::vector<int> inliers;
 
   Sophus::SO3d prev_rel_rotation = Sophus::SO3d();
-  if (curr_frame->id() > 1) {
+  if (target_frame->id() > 1) {
     prev_rel_rotation = PrevRelRotation(prev_view, prev_view_idx);
   }
 
   Sophus::SE3d prev_pose(prev_rel_rotation, Eigen::Vector3d(0.0, 0.0, 0.0));
 
+  BOOST_LOG_TRIVIAL(debug) << "Finding the relative pose between "
+                           << host_frame->id() << " and " << target_frame->id();
   Sophus::SE3d rel_pose = f2f_pose_estimation_->Align(
-      prev_frame, curr_frame, matches, prev_pose, inliers, frame_timing, true,
+      host_frame, target_frame, matches, prev_pose, inliers, frame_timing, true,
       results_folder + "ablation/");
-  int n_epi_inlr = inliers.size();
 
-  //   matches_vec.push_back(matches.size());
-  //   inliers_vec.push_back(n_epi_inlr);
   view_graph_->AddView(curr_view);
   bool success = view_graph_->Connect(prev_view, curr_view, matches, rel_pose);
   if (!success) {
@@ -111,24 +113,9 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   }
   view_graph_->ShortenViewGraph();
 
-  // Visualization
-  // TODO: Make Visualization
-  if (skipping_counter_ >= skip_showing_n_) {
-    switch (visualization_level_) {
-    case Features:
-      break;
-    case InitMatches:
-    case AllMatches:
-      break;
-    case InitMatchesRANSAC:
-    case AllMatchesRANSAC:
-      break;
-    case NoViz:
-      break;
-    }
-    skipping_counter_ = 0;
-  } else {
-    skipping_counter_++;
+  if (visualization_options_.keypoints != pnec::visualization::Options::NO) {
+    pnec::visualization::plotMatches(host_frame, target_frame, matches, inliers,
+                                     visualization_options_, "");
   }
 
   count_connections++;

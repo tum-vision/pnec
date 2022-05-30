@@ -35,6 +35,7 @@
 
 #ifndef SIMULATION_OFFSET_EXPERIMENTS_H_
 #define SIMULATION_OFFSET_EXPERIMENTS_H_
+#include <boost/log/trivial.hpp>
 
 #include "common.h"
 #include "experiments.h"
@@ -52,9 +53,9 @@ public:
       : BaseExperiments(seed, translation, camera_model),
         noise_type_(noise_type), noise_frame_(noise_frame) {
     if (noise_type == simulation::NoiseType::isotropic_homogenous) {
-      std::cout << "There is no implementation for the offset experiment with "
-                   "isotropic and homogeneous noise."
-                << std::endl;
+      BOOST_LOG_TRIVIAL(warning)
+          << "There is no implementation for the offset experiment with "
+             "isotropic and homogeneous noise.";
     }
   }
 

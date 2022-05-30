@@ -34,6 +34,8 @@
  */
 
 #include "converter.h"
+
+#include "common.h"
 namespace pnec {
 namespace converter {
 basalt::OpticalFlowInput::Ptr OpticalFlowFromOpenCV(const cv::Mat &image,
@@ -59,15 +61,23 @@ basalt::OpticalFlowInput::Ptr OpticalFlowFromOpenCV(const cv::Mat &image,
   return data;
 }
 
-void KeypointsFromOpticalFlow(basalt::OpticalFlowResult::Ptr result,
-                              std::vector<cv::KeyPoint> &keypoints,
-                              std::vector<uint32_t> &keypoint_ids) {
-  // single camera
-  for (auto observation : result->observations[0]) {
-    keypoint_ids.push_back(observation.first);
-    keypoints.push_back(
-        cv::KeyPoint(observation.second(0, 2), observation.second(1, 2), 1));
+pnec::features::KeyPoints KeyPointsFromOpticalFlow(
+    const basalt::PNECOpticalFlowResult::Ptr optical_flow_result,
+    bool undistort) {
+  pnec::features::KeyPoints keypoints;
+  for (auto const &[id, observation] : optical_flow_result->observations[0]) {
+    Eigen::Vector2d point(observation.transform(0, 2),
+                          observation.transform(1, 2));
+    if (undistort) {
+      point = pnec::common::Undistort(point);
+    }
+    pnec::features::KeyPoint keypoint(point,
+                                      observation.covariance.cast<double>(),
+                                      observation.hessian.cast<double>());
+
+    keypoints[id] = keypoint;
   }
+  return keypoints;
 }
 
 } // namespace converter
