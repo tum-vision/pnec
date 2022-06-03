@@ -46,6 +46,7 @@
 
 #include "base_matcher.h"
 #include "common.h"
+#include "odometry_output.h"
 #include "visualization.h"
 
 #define PLOT true
@@ -176,6 +177,7 @@ bool FrameProcessing::ProcessUncertaintyExtraction(
     }
   }
   std::cout << "Saving " << inlier_ids.size() << " inlier patches" << std::endl;
+
   if (extract_host) {
     host_frame->SaveInlierPatches(host_frame->keypoints(inlier_ids),
                                   extraction_counter_, results_folder);
@@ -222,12 +224,16 @@ bool FrameProcessing::ProcessUncertaintyExtractionVO(
   pnec::FeatureMatches matches =
       matcher_->FindMatches(prev_frame, curr_frame, skipping_frame);
 
+  BOOST_LOG_TRIVIAL(info) << "Found: " << matches.size() << " matches.";
+
   std::vector<int> inliers;
 
   pnec::common::FrameTiming dummy_timing(0);
   Sophus::SE3d rel_pose = f2f_pose_estimation_->Align(
       prev_frame, curr_frame, matches, init_pose, inliers, dummy_timing, false,
       results_folder + "ablation/");
+
+  BOOST_LOG_TRIVIAL(info) << "Found: " << inliers.size() << " inliers.";
 
   if (save_uncertainty) {
     // Pass the inliers to the prev_frame, to extract patches and covariances
@@ -245,6 +251,10 @@ bool FrameProcessing::ProcessUncertaintyExtractionVO(
     if (!boost::filesystem::exists(image_results_folder)) {
       boost::filesystem::create_directory(image_results_folder);
     }
+
+    // save ground truth
+    pnec::out::SavePose(image_results_folder, "pose", curr_frame->Timestamp(),
+                        init_pose);
 
     BOOST_LOG_TRIVIAL(info)
         << "Saving " << host_inlier_ids.size() << " inlier patches";
