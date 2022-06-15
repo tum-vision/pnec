@@ -114,8 +114,8 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   }
   view_graph_->ShortenViewGraph();
 
-  pnec::visualization::plotMatches(prev_frame, curr_frame, matches, inliers,
-                                   "_presentation");
+  // pnec::visualization::plotMatches(prev_frame, curr_frame, matches, inliers,
+  //                                  "_presentation");
 
   // Visualization
   // TODO: Make Visualization
@@ -235,12 +235,25 @@ bool FrameProcessing::ProcessUncertaintyExtractionVO(
 
   BOOST_LOG_TRIVIAL(info) << "Found: " << inliers.size() << " inliers.";
 
+  // random sample of 128 inliers
+  if (inliers.size() < 128) {
+    return true;
+  }
+  std::vector<unsigned int> indices(inliers.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  std::random_shuffle(indices.begin(), indices.end());
+  std::vector<int> sampled_inliers;
+  for (size_t i = 0; i < 128; i++) {
+    sampled_inliers.push_back(inliers[indices[i]]);
+  }
+  BOOST_LOG_TRIVIAL(info) << "Sampled " << sampled_inliers.size() << " inliers";
+
   if (save_uncertainty) {
     // Pass the inliers to the prev_frame, to extract patches and covariances
     std::vector<size_t> host_inlier_ids;
     std::vector<size_t> target_inlier_ids;
 
-    for (const auto &inlier : inliers) {
+    for (const auto &inlier : sampled_inliers) {
       cv::DMatch match = matches[inlier];
       host_inlier_ids.push_back(match.queryIdx);
       target_inlier_ids.push_back(match.trainIdx);

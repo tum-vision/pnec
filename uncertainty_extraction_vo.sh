@@ -6,7 +6,7 @@ do
 done
 : "${sequence:="04"}"
 dataset_path="/storage/group/dataset_mirrors/kitti_odom_grey/sequences"
-results_path="/storage/user/muhled/datasets/custom/kitti_patches_vo"
+results_path="/storage/user/muhled/datasets/custom/kitti_patches_single_patch_img"
 no_skip="true"
 
 tracking_config_path="data/tracking/KITTI"
