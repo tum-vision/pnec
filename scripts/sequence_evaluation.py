@@ -84,7 +84,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Evaluate performance of an algorithm on a dataset sequence')
     parser.add_argument("-d", "--dir", help="Base directory of all results",
-                        type=str, default="/storage/user/muhled/outputs/pnec/refactor")
+                        type=str, default="default path")
     parser.add_argument("-s", "--sequence", help="Sequence",
                         type=str, default="03")
     parser.add_argument("-m", '--methods', nargs='+',

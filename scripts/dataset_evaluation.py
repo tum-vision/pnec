@@ -10,14 +10,14 @@
 
 import argparse
 from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
+
 import pandas as pd
 import seaborn as sns
 
-from typing import List, Set, Dict, Tuple, Optional
-
+from pnec.latex.Tables import TableHighlighting
 from pnec.plotting.FigureSize import FigureSize
 from pnec.plotting.Metrics import DatasetMetric
-from pnec.latex.Tables import TableHighlighting
 from pnec.visual_odometry.io.evaluate_run import evaluate_run
 
 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Evaluate performance of an algorithm on a dataset sequence')
     parser.add_argument("-d", "--dir", help="Base directory of all results",
-                        type=str, default="base directory")
+                        type=str, default="default path")
     parser.add_argument("-m", '--methods', nargs='+',
                         default=['NEC', 'PNEC'])
 

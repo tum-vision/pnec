@@ -23,13 +23,13 @@ PoseFromText = Callable[[np.ndarray], sp.SE3]
 
 
 def pose_from_quat(quaternion: np.ndarray, format: str = "xyzabcw") -> sp.SE3:
-    w = quaternion[format.index('w') - 1]
-    a = quaternion[format.index('a') - 1]
-    b = quaternion[format.index('b') - 1]
-    c = quaternion[format.index('c') - 1]
-    x = quaternion[format.index('x') - 1]
-    y = quaternion[format.index('y') - 1]
-    z = quaternion[format.index('z') - 1]
+    w = quaternion[format.index('w')]
+    a = quaternion[format.index('a')]
+    b = quaternion[format.index('b')]
+    c = quaternion[format.index('c')]
+    x = quaternion[format.index('x')]
+    y = quaternion[format.index('y')]
+    z = quaternion[format.index('z')]
 
     rotation = R.from_quat([a, b, c, w])
 
@@ -44,21 +44,6 @@ def pose_from_matrix(transformation_matrix: np.ndarray, format: Tuple[int, int] 
 def read_poses(poses_path: Path, pose_from_text: PoseFromText, timing_path: Union[Path, None] = None, delimter: str = ' ', header: bool = False):
     def format_time(timestamp: float):
         return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-
-    # def pose_from_matrix(transformation_matrix):
-    #     return sp.SE3(sp.to_orthogonal(transformation_matrix[:3, :3]), transformation_matrix[:3, 3])
-
-    # def pose_from_quat(quad_and_t, front_w):
-    #     if front_w:
-    #         w = quad_and_t[3]
-    #         vec = quad_and_t[4:7]
-    #     else:
-    #         w = quad_and_t[6]
-    #         vec = quad_and_t[3:6]
-    #     rotation = R.from_quat(np.append(vec, w))
-    #     # if w != 1.0:
-    #     #     vec = vec / sqrt(1 - w**2)
-    #     return sp.SE3(rotation.as_matrix(), quad_and_t[0:3, None])
 
     if timing_path == None:
         try:
@@ -123,7 +108,7 @@ def matches_from_poses(method: str, path_est: Path, path_gt: Path):
     first_row = pd.DataFrame([[first_timestamp, sp.SE3()]], columns=[
         'timestamp', 'poses'])
 
-    pose_from_text = partial(pose_from_quat, format="txyzabcw")
+    pose_from_text = partial(pose_from_quat, format="xyzabcw")
     estimated = read_poses(path_est.joinpath(method + '.txt'), pose_from_text)
 
     if estimated is None:
@@ -150,7 +135,7 @@ def matches_from_poses(method: str, path_est: Path, path_gt: Path):
 def read_matched_poses(path: Path):
     if not path.is_file():
         return None
-    pose_from_text = partial(pose_from_quat, format="txyzabcw")
+    pose_from_text = partial(pose_from_quat, format="xyzabcw")
     return read_poses(path, pose_from_text, delimter=',', header=True)
 
 
