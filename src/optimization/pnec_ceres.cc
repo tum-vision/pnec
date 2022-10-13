@@ -100,8 +100,69 @@ void PNECCeres::Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
                                orientation_.coeffs().data());
     }
   }
-  problem.SetParameterization(orientation_.coeffs().data(),
-                              new ceres::EigenQuaternionParameterization);
+  ceres::Manifold *quaternion_manifold = new ceres::EigenQuaternionManifold;
+  // std::cout << "here" << std::endl;
+
+  problem.SetManifold(orientation_.coeffs().data(), quaternion_manifold);
+  // problem.SetParameterization(orientation_.coeffs().data(),
+  //                             new ceres::EigenQuaternionParameterization);
+
+  ceres::Solve(options_, &problem, &summary_);
+}
+
+void PNECCeres::Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
+                         const std::vector<Eigen::Vector3d> &bvs_2,
+                         const std::vector<Eigen::Matrix3d> &covs_1,
+                         const std::vector<Eigen::Matrix3d> &covs_2,
+                         double regularization) {
+
+  ceres::Problem problem;
+  std::vector<double *> orientation_d =
+      std::vector<double *>{orientation_.coeffs().data()};
+
+  for (size_t i = 0; i < bvs_1.size(); i++) {
+    ceres::CostFunction *cost_function =
+        new ceres::NumericDiffCostFunction<pnec::residual::PNECSymmetrical,
+                                           ceres::CENTRAL, 1, 1, 1, 4>(
+            new pnec::residual::PNECSymmetrical(bvs_1[i], bvs_2[i], covs_1[i],
+                                                covs_2[i], regularization));
+    problem.AddResidualBlock(cost_function, nullptr, &theta_, &phi_,
+                             orientation_.coeffs().data());
+  }
+
+  // if (noise_frame == pnec::common::Host) {
+  //   for (size_t i = 0; i < bvs_1.size(); i++) {
+
+  //     ceres::CostFunction *cost_function =
+  //         new
+  //         ceres::NumericDiffCostFunction<pnec::residual::PNECResidualHost,
+  //                                            ceres::CENTRAL, 1, 1, 1, 4>(
+  //             new pnec::residual::PNECResidualHost(bvs_1[i], bvs_2[i],
+  //             covs[i],
+  //                                                  regularization));
+  //     problem.AddResidualBlock(cost_function, nullptr, &theta_, &phi_,
+  //                              orientation_.coeffs().data());
+  //   }
+  // } else {
+  //   for (size_t i = 0; i < bvs_1.size(); i++) {
+
+  //     ceres::CostFunction *cost_function =
+  //         new
+  //         ceres::NumericDiffCostFunction<pnec::residual::PNECResidualTarget,
+  //                                            ceres::CENTRAL, 1, 1, 1, 4>(
+  //             new pnec::residual::PNECResidualTarget(bvs_1[i], bvs_2[i],
+  //                                                    covs[i],
+  //                                                    regularization));
+  //     problem.AddResidualBlock(cost_function, nullptr, &theta_, &phi_,
+  //                              orientation_.coeffs().data());
+  //   }
+  // }
+  ceres::Manifold *quaternion_manifold = new ceres::EigenQuaternionManifold;
+  // std::cout << "here" << std::endl;
+
+  problem.SetManifold(orientation_.coeffs().data(), quaternion_manifold);
+  // problem.SetParameterization(orientation_.coeffs().data(),
+  //                             new ceres::EigenQuaternionParameterization);
 
   ceres::Solve(options_, &problem, &summary_);
 }
