@@ -163,11 +163,13 @@ public:
       covariances.clear();
       hessians.clear();
 
+      BOOST_LOG_TRIVIAL(debug) << "Tracking patches";
       for (size_t i = 0; i < /*calib.intrinsics.size()*/ 1; i++) {
         trackPoints(old_pyramid->at(i), pyramid->at(i),
                     transforms->observations[i],
                     new_transforms->observations[i]);
       }
+      BOOST_LOG_TRIVIAL(debug) << "Finished Tracking";
 
       transforms = new_transforms;
       int num_tracked_points = transforms->observations[0].size();
@@ -248,19 +250,24 @@ public:
             }
           }
         }
-        // mark id of patches for removal to save memory footprint
+        // remove id from patches to save memory footprint
         if (!valid) {
           marked_for_deletion.push_back(id);
+          // BOOST_LOG_TRIVIAL(debug) << "Trying to delete keypoint with id " <<
+          // id
+          //                          << " that isn't valid ";
+          // patches.erase(id);
         }
       }
     };
 
     tbb::blocked_range<size_t> range(0, num_points);
 
+    BOOST_LOG_TRIVIAL(debug) << "Track parallel";
     tbb::parallel_for(range, compute_func);
+    BOOST_LOG_TRIVIAL(debug) << "Finished tracking parallel";
     // compute_func(range);
 
-    // remove patches marked for deletion
     BOOST_LOG_TRIVIAL(debug) << "Deleting " << marked_for_deletion.size()
                              << " patches with invalid tracks.";
     for (const auto id : marked_for_deletion) {

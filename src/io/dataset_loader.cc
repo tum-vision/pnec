@@ -133,10 +133,11 @@ void DatasetLoader::LoadSeperately(std::string img_path, std::string im_ext,
 
 bool LoadGroundTruth(std::string gt_path, std::vector<Sophus::SE3d> &gt_poses,
                      std::vector<Sophus::SE3d> &rel_gt_poses) {
+  std::cout << "Loading ground truth from " << gt_path << std::endl;
   std::ifstream myfile(gt_path);
   if (!myfile.is_open()) {
     std::cerr << "Unable to open file " << gt_path << std::endl;
-    std::exit(-1);
+    return false;
   }
   double r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12;
   while (myfile >> r1 >> r2 >> r3 >> r4 >> r5 >> r6 >> r7 >> r8 >> r9 >> r10 >>
@@ -157,6 +158,8 @@ bool LoadGroundTruth(std::string gt_path, std::vector<Sophus::SE3d> &gt_poses,
   for (size_t i = 0; i < gt_poses.size() - 1; i++) {
     rel_gt_poses.push_back(gt_poses[i].inverse() * gt_poses[i + 1]);
   }
+  std::cout << "computed " << rel_gt_poses.size() << " relative ground truth poses" << std::endl;
+  return true;
 }
 } // namespace input
 } // namespace pnec
