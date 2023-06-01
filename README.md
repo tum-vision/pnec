@@ -73,6 +73,10 @@ Go to the root directory
   cmake ..
   make
 ```
+
+### pybind
+We provide a pybind of the pose optimization and the KLT-feature extraction methods.
+
 ## Usage
 ### Simple Patch extraction
 Run localy:
