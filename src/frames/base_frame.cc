@@ -36,6 +36,7 @@
 #include "base_frame.h"
 
 #include <ctime>
+#include <fstream>
 
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/features2d.hpp>

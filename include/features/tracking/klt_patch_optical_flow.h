@@ -118,8 +118,9 @@ public:
 
   ~KLTPatchOpticalFlow() {}
 
-  PNECOpticalFlowResult::Ptr processFrame(int64_t curr_t_ns,
-                                          OpticalFlowInput::Ptr &new_img_vec) {
+  PNECOpticalFlowResult::Ptr
+  processFrame(int64_t curr_t_ns, OpticalFlowInput::Ptr &new_img_vec,
+               const Eigen::Vector2d &offset = Eigen::Vector2d(0.0, 0.0)) {
     for (const auto &v : new_img_vec->img_data) {
       if (!v.img.get())
         return transforms;
@@ -162,12 +163,13 @@ public:
 
       covariances.clear();
       hessians.clear();
+      BOOST_LOG_TRIVIAL(debug) << "Shifting points by" << offset;
 
       BOOST_LOG_TRIVIAL(debug) << "Tracking patches";
       for (size_t i = 0; i < /*calib.intrinsics.size()*/ 1; i++) {
         trackPoints(old_pyramid->at(i), pyramid->at(i),
                     transforms->observations[i],
-                    new_transforms->observations[i]);
+                    new_transforms->observations[i], offset);
       }
       BOOST_LOG_TRIVIAL(debug) << "Finished Tracking";
 
@@ -194,7 +196,8 @@ public:
       const basalt::ManagedImagePyr<u_int16_t> &pyr_1,
       const basalt::ManagedImagePyr<u_int16_t> &pyr_2,
       const Eigen::aligned_map<KeypointId, PNECObservation> &transform_map_1,
-      Eigen::aligned_map<KeypointId, PNECObservation> &transform_map_2) {
+      Eigen::aligned_map<KeypointId, PNECObservation> &transform_map_2,
+      const Eigen::Vector2d &offset = Eigen::Vector2d(0.0, 0.0)) {
     size_t num_points = transform_map_1.size();
 
     std::vector<KeypointId> ids;
@@ -224,12 +227,12 @@ public:
 
         const Eigen::aligned_vector<PatchT> &patch_vec = patches.at(id);
 
-        bool valid = trackPoint(pyr_2, patch_vec, transform_2);
+        bool valid = trackPoint(pyr_2, patch_vec, transform_2, offset);
 
         if (valid) {
           Eigen::AffineCompact2f transform_1_recovered = transform_2;
 
-          valid = trackPoint(pyr_1, patch_vec, transform_1_recovered);
+          valid = trackPoint(pyr_1, patch_vec, transform_1_recovered, -offset);
 
           if (valid) {
             Scalar dist2 = (transform_1.translation() -
@@ -282,8 +285,12 @@ public:
 
   inline bool trackPoint(const basalt::ManagedImagePyr<uint16_t> &pyr,
                          const Eigen::aligned_vector<PatchT> &patch_vec,
-                         Eigen::AffineCompact2f &transform) const {
+                         Eigen::AffineCompact2f &transform,
+                         const Eigen::Vector2d &offset) const {
     bool patch_valid = true;
+
+    transform.matrix().topRightCorner(2, 1) =
+        transform.matrix().topRightCorner(2, 1) + offset.cast<float>();
 
     for (int level = config.optical_flow_levels;
          level >= min_level && patch_valid; level--) {
