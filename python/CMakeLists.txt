@@ -1,4 +1,8 @@
 # add_subdirectory(pybind11)
+set(PYTHONVERSION 3.10)
+set(PYBIND11_PYTHON_VERSION 3.10 CACHE STRING "")
+
+add_subdirectory(pybind11)
 
 include_directories(${PYTHON_INCLUDE_DIRS})
 pybind11_add_module(pypnec pypnec.cpp)
