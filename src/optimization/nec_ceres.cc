@@ -96,8 +96,8 @@ void NECCeres::Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
 
   ceres::Solve(options_, &problem, &summary_);
 
-  BOOST_LOG_TRIVIAL(trace) << summary_.BriefReport() << "\n";
-  BOOST_LOG_TRIVIAL(trace) << summary_.FullReport() << "\n";
+  // BOOST_LOG_TRIVIAL(trace) << summary_.BriefReport() << "\n";
+  // BOOST_LOG_TRIVIAL(trace) << summary_.FullReport() << "\n";
 }
 
 void NECCeres::InitValues(const Eigen::Quaterniond orientation, double theta,
