@@ -83,7 +83,7 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   pnec::frames::BaseFrame::Ptr host_frame = prev_view->Frame();
 
   BOOST_LOG_TRIVIAL(debug) << "Finding matches between frames "
-                           << prev_frame->id() << " and " << curr_frame->id();
+                           << host_frame->id() << " and " << target_frame->id();
   bool skipping_frame;
   pnec::FeatureMatches matches =
       matcher_->FindMatches(host_frame, target_frame, skipping_frame);
@@ -102,10 +102,10 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   Sophus::SE3d prev_pose(prev_rel_rotation, Eigen::Vector3d(0.0, 0.0, 0.0));
 
   BOOST_LOG_TRIVIAL(debug) << "Finding the relative pose between "
-                           << prev_frame->id() << " and " << curr_frame->id();
+                           << host_frame->id() << " and " << target_frame->id();
   Sophus::SE3d rel_pose = f2f_pose_estimation_->Align(
-      prev_frame, curr_frame, matches, prev_pose, inliers, frame_timing, false,
-      results_folder + "ablation/");
+      host_frame, target_frame, matches, prev_pose, inliers, frame_timing,
+      false, results_folder + "ablation/");
 
   view_graph_->AddView(curr_view);
   bool success = view_graph_->Connect(prev_view, curr_view, matches, rel_pose);
@@ -114,28 +114,29 @@ bool FrameProcessing::ProcessFrame(pnec::frames::BaseFrame::Ptr frame,
   }
   view_graph_->ShortenViewGraph();
 
-  // pnec::visualization::plotMatches(prev_frame, curr_frame, matches, inliers,
+  // pnec::visualization::plotMatches(host_frame, target_frame, matches,
+  // inliers,
   //                                  "_presentation");
 
   // Visualization
   // TODO: Make Visualization
-  if (skipping_counter_ >= skip_showing_n_) {
-    switch (visualization_level_) {
-    case Features:
-      break;
-    case InitMatches:
-    case AllMatches:
-      break;
-    case InitMatchesRANSAC:
-    case AllMatchesRANSAC:
-      break;
-    case NoViz:
-      break;
-    }
-    skipping_counter_ = 0;
-  } else {
-    skipping_counter_++;
-  }
+  // if (skipping_counter_ >= skip_showing_n_) {
+  //   switch (visualization_options_.keypoints) {
+  //   case Features:
+  //     break;
+  //   case InitMatches:
+  //   case AllMatches:
+  //     break;
+  //   case InitMatchesRANSAC:
+  //   case AllMatchesRANSAC:
+  //     break;
+  //   case NoViz:
+  //     break;
+  //   }
+  //   skipping_counter_ = 0;
+  // } else {
+  //   skipping_counter_++;
+  // }
 
   count_connections++;
   prev_view_idx--;
@@ -166,7 +167,7 @@ bool FrameProcessing::ProcessUncertaintyExtraction(
   std::cout << "Finished aligning" << std::endl;
   std::cout << "Found " << inliers.size() << " inliers." << std::endl;
 
-  // Pass the inliers to the prev_frame, to extract patches and covariances
+  // Pass the inliers to the host_frame, to extract patches and covariances
   std::vector<size_t> inlier_ids;
   for (const auto &inlier : inliers) {
     cv::DMatch match = matches[inlier];
