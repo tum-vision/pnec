@@ -110,6 +110,45 @@ private:
   double regularization_;
 };
 
+struct PNECSymmetrical {
+  PNECSymmetrical(Eigen::Vector3d bv_1, Eigen::Vector3d bv_2,
+                  Eigen::Matrix3d cov_1, Eigen::Matrix3d cov_2,
+                  double regularization)
+      : bv_1_{bv_1}, bv_2_{bv_2}, cov_1_{cov_1}, cov_2_{cov_2},
+        regularization_{regularization} {}
+  template <typename T>
+  bool operator()(const T *const theta_ptr, const T *const phi_ptr,
+                  const T *const orientation_ptr, T *residual_ptr) const {
+    // map the pointers to Eigen quaternions for easier use
+    const Eigen::Matrix<T, 3, 1> translation(
+        std::sin(theta_ptr[0]) * std::cos(phi_ptr[0]),
+        std::sin(theta_ptr[0]) * std::sin(phi_ptr[0]), std::cos(theta_ptr[0]));
+    Eigen::Map<const Eigen::Quaternion<T>> orientation(orientation_ptr);
+    const Eigen::Matrix<T, 3, 3> rotation_m = orientation.toRotationMatrix();
+    const Eigen::Matrix<double, 3, 3> bv_1_hat =
+        pnec::common::SkewFromVector(bv_1_);
+    const Eigen::Matrix<double, 3, 3> rot_bvs_2_hat =
+        pnec::common::SkewFromVector(rotation_m * bv_2_);
+
+    residual_ptr[0] =
+        (translation.transpose() * bv_1_.cross(rotation_m * bv_2_))(0, 0) /
+        std::sqrt((translation.transpose() *
+                   (bv_1_hat * rotation_m * cov_2_ * rotation_m.transpose() *
+                        bv_1_hat.transpose() +
+                    rot_bvs_2_hat * cov_1_ * rot_bvs_2_hat.transpose()) *
+                   translation)(0, 0) +
+                  regularization_);
+    return true;
+  }
+
+private:
+  const Eigen::Matrix<double, 3, 1> bv_1_;
+  const Eigen::Matrix<double, 3, 1> bv_2_;
+  const Eigen::Matrix<double, 3, 3> cov_1_;
+  const Eigen::Matrix<double, 3, 3> cov_2_;
+  double regularization_;
+};
+
 } // namespace residual
 } // namespace pnec
 

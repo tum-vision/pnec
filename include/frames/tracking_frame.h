@@ -60,12 +60,20 @@ public:
       : BaseFrame(id, timestamp, path), tracking_{tracking} {
     FindFeatures(frame_timing);
   }
+  TrackingFrame(const cv::Mat &image,
+                basalt::KLTPatchOpticalFlow<float, basalt::Pattern52> &tracking,
+                const Eigen::Vector2d &offset = Eigen::Vector2d(0.0, 0.0))
+      : BaseFrame(0, 0.0, ""), tracking_{tracking} {
+    FindFeatures2(image, offset);
+  }
 
 private:
   void FindFeatures(pnec::common::FrameTiming &frame_timing);
+  void FindFeatures2(const cv::Mat &image, const Eigen::Vector2d &offset);
 
   basalt::KLTPatchOpticalFlow<float, basalt::Pattern52> &tracking_;
 };
+
 } // namespace frames
 } // namespace pnec
 

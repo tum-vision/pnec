@@ -50,7 +50,7 @@ namespace pnec {
 typedef std::vector<cv::DMatch> FeatureMatches;
 
 namespace common {
-enum NoiseFrame { Host, Target };
+enum NoiseFrame { Host, Target, Both };
 
 enum CameraModel { Omnidirectional, Pinhole };
 

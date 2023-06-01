@@ -48,6 +48,7 @@
 #include <Eigen/Core>
 
 #include "camera.h"
+#include "common.h"
 #include "keypoints.h"
 
 namespace pnec {
@@ -75,6 +76,14 @@ public:
 
   void PlotFeatures();
 
+  void SaveInlierPatches(const pnec::features::KeyPoints keypoints,
+                         size_t &counter, std::string results_dir);
+
+  void
+  SaveInlierPatchesStructured(const pnec::features::KeyPoints host_keypoints,
+                              const pnec::features::KeyPoints target_keypoints,
+                              size_t &counter, std::string results_dir);
+
 protected:
   const int id_;
   const double timestamp_;
@@ -82,6 +91,14 @@ protected:
 
   pnec::features::KeyPoints keypoints_;
 };
+
+// helper
+void GetInlierKeyPoints(
+    pnec::frames::BaseFrame::Ptr host_frame,
+    pnec::frames::BaseFrame::Ptr target_frame, pnec::FeatureMatches matches,
+    std::vector<int> inliers,
+    std::vector<pnec::features::KeyPoint> &inlier_host_frame,
+    std::vector<pnec::features::KeyPoint> &inlier_target_frame);
 } // namespace frames
 } // namespace pnec
 

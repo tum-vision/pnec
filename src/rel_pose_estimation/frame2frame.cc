@@ -124,9 +124,12 @@ Sophus::SE3d Frame2Frame::PNECAlign(
     const std::vector<Eigen::Matrix3d> &projected_covs,
     Sophus::SE3d prev_rel_pose, std::vector<int> &inliers,
     pnec::common::FrameTiming &frame_timing, std::string ablation_folder) {
+  options_.use_nec_ = true;
+  options_.use_ceres_ = false;
   pnec::rel_pose_estimation::PNEC pnec(options_);
-  Sophus::SE3d rel_pose = pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose,
-                                     inliers, frame_timing);
+  
+  Sophus::SE3d rel_pose =
+      pnec.Solve(bvs1, bvs2, projected_covs, prev_rel_pose, inliers, frame_timing);
 
   if (ablation_rel_poses_.count("PNEC") == 0) {
     ablation_rel_poses_["PNEC"] = {
@@ -141,14 +144,18 @@ void Frame2Frame::AblationAlign(
     const opengv::bearingVectors_t &bvs1, const opengv::bearingVectors_t &bvs2,
     const std::vector<Eigen::Matrix3d> &projected_covs,
     std::string ablation_folder) {
+  BOOST_LOG_TRIVIAL(debug) << "Using ablation methods";
 
   auto GetPrevRelPose = [this](std::string method_name) -> Sophus::SE3d {
     Sophus::SE3d prev_rel_pose;
     if (ablation_rel_poses_.count(method_name) == 0) {
+      BOOST_LOG_TRIVIAL(debug) << "Didn't previous pose for " << method_name
+                               << ", returning identity";
       ablation_rel_poses_[method_name] = {
           std::make_pair<double, Sophus::SE3d>(0.0, Sophus::SE3d())};
       prev_rel_pose = Sophus::SE3d();
     } else {
+      BOOST_LOG_TRIVIAL(debug) << "Loading previous pose for " << method_name;
       prev_rel_pose = ablation_rel_poses_[method_name].back().second;
     }
     return prev_rel_pose;

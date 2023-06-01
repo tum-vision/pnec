@@ -14,7 +14,7 @@ done
 : "${results_path:="{default location of results}"}"
 : "${visualization_path:="$results_path/visualization/"}"
 : "${starting_value:=0}"
-: "${iterations:="10"}"
+: "${iterations:="1"}"
 : "${no_skip:="true"}"
 : "${use_ground_truth:="false"}"
 

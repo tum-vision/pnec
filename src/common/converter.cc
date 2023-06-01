@@ -61,6 +61,17 @@ basalt::OpticalFlowInput::Ptr OpticalFlowFromOpenCV(const cv::Mat &image,
   return data;
 }
 
+// void KeypointsFromOpticalFlow(basalt::OpticalFlowResult::Ptr result,
+//                               std::vector<cv::KeyPoint> &keypoints,
+//                               std::vector<uint32_t> &keypoint_ids) {
+//   // single camera
+//   for (auto observation : result->observations[0]) {
+//     keypoint_ids.push_back(observation.first);
+//     keypoints.push_back(
+//         cv::KeyPoint(observation.second(0, 2), observation.second(1, 2), 1));
+//   }
+// }
+
 pnec::features::KeyPoints KeyPointsFromOpticalFlow(
     const basalt::PNECOpticalFlowResult::Ptr optical_flow_result,
     bool undistort) {
@@ -79,6 +90,27 @@ pnec::features::KeyPoints KeyPointsFromOpticalFlow(
   }
   return keypoints;
 }
+
+// pnec::features::KeyPoints KeypointsFromOpticalFlow(
+//     basalt::KLTPatchOpticalFlow<float, basalt::Pattern52> &optical_flow,
+//     bool undistort) {
+//   pnec::features::KeyPoints keypoints;
+//   for (auto observation : optical_flow.Transforms()->observations[0]) {
+//     pnec::features::KeyPointID id = observation.first;
+//     Eigen::Vector2d point(observation.second(0, 2), observation.second(1,
+//     2)); if (undistort) {
+//       point = pnec::common::Undistort(point);
+//     }
+//     Eigen::Matrix2d cov =
+//         optical_flow.Covariances()[0][observation.first].cast<double>();
+//     // dummy
+//     Eigen::Matrix3d hessian = Eigen::Matrix3d::Zero();
+//     pnec::features::KeyPoint keypoint(point, cov, hessian);
+
+//     keypoints[id] = keypoint;
+//   }
+//   return keypoints;
+// }
 
 } // namespace converter
 } // namespace pnec

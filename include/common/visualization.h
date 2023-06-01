@@ -79,6 +79,13 @@ char plotMatches(pnec::frames::BaseFrame::Ptr host_frame,
                  pnec::FeatureMatches &matches, std::vector<int> &inliers,
                  pnec::visualization::Options visualization_options,
                  std::string suffix);
+
+char plotMatches(pnec::frames::BaseFrame::Ptr host_frame, cv::Mat &host_image,
+                 pnec::frames::BaseFrame::Ptr target_frame,
+                 cv::Mat &target_image, pnec::FeatureMatches &matches,
+                 std::vector<int> &inliers,
+                 pnec::visualization::Options visualization_options,
+                 std::string suffix);
 } // namespace visualization
 } // namespace pnec
 

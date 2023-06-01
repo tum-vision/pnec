@@ -7,13 +7,18 @@ if(COMPILER_SUPPORTS_MARCH_NATIVE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
-set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_FLAGS "-std=c++17")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -fPIC")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# set(PYBIND11_PYTHON_VERSION "3.9")
+# set(PYTHONVERSION "theseus")
+# set(Python_ROOT_DIR "/usr/wiss/muhled/miniconda3/envs/theseusclone/")
+# find_package(Python 3.9 COMPONENTS Interpreter Development REQUIRED)
 
 # Make CMake aware of the cmake folder for local FindXXX scripts,
 # append rather than set in case the user has passed their own
@@ -27,9 +32,11 @@ include(UpdateCacheVariable)
 # instead of local eigen install which is not necessary 3.4
 add_subdirectory(third_party/basalt EXCLUDE_FROM_ALL)
 # ============================= basalt =============================
+list(APPEND CMAKE_PREFIX_PATH "/usr/wiss/muhled/install")
 find_package(Boost COMPONENTS filesystem log log_setup REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 find_package(SuiteSparse)
+# list(APPEND CMAKE_PREFIX_PATH "/usr/wiss/muhled/cpp_libraries/ceres-solver/build/lib")
 find_package(Ceres REQUIRED)
 
 # ============================= suitesparse =============================
@@ -107,7 +114,7 @@ if (ALL_DOTFILES)
     list(REMOVE_ITEM ALL_LIBRARY_HDRS ${ALL_DOTFILES})
     list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_DOTFILES})
 endif()
-file(GLOB_RECURSE MAIN_FILE "src/PNECMRO.cc")
+file(GLOB_RECURSE MAIN_FILE "src/pnec_vo.cc")
 if (MAIN_FILE)
     list(REMOVE_ITEM ALL_LIBRARY_SRCS ${MAIN_FILE})
 endif()
@@ -119,12 +126,30 @@ file(GLOB_RECURSE SIMULATION_FILE "src/run_simulation.cc")
 if (SIMULATION_FILE)
     list(REMOVE_ITEM ALL_LIBRARY_SRCS ${SIMULATION_FILE})
 endif()
+file(GLOB_RECURSE SIMULATION_FILE "src/uncertainty_extraction.cc")
+if (SIMULATION_FILE)
+    list(REMOVE_ITEM ALL_LIBRARY_SRCS ${SIMULATION_FILE})
+endif()
+
+file(GLOB_RECURSE SIMULATION_FILE "src/uncertainty_extraction_vo.cc")
+if (SIMULATION_FILE)
+    list(REMOVE_ITEM ALL_LIBRARY_SRCS ${SIMULATION_FILE})
+endif()
 
 add_library(${PROJECT_NAME} STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
 target_link_libraries(${PROJECT_NAME} ${THIRD_PARTY_LIBS} opengv)
 
+# ======================================================= PYTHON =======================================================
+add_subdirectory(python)
+
 add_executable(pnec_vo src/pnec_vo.cc ${THIRD_PARTY_FILES})
 target_link_libraries(pnec_vo ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})
+
+add_executable(uncertainty_extraction src/uncertainty_extraction.cc ${THIRD_PARTY_FILES})
+target_link_libraries(uncertainty_extraction ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})
+
+add_executable(uncertainty_extraction_vo src/uncertainty_extraction_vo.cc ${THIRD_PARTY_FILES})
+target_link_libraries(uncertainty_extraction_vo ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})
 
 add_executable(create_experiments src/create_sim_experiments.cc ${THIRD_PARTY_FILES})
 target_link_libraries(create_experiments ${THIRD_PARTY_LIBS} opengv ${PROJECT_NAME})

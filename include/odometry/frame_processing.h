@@ -75,6 +75,17 @@ public:
                     pnec::common::FrameTiming &frame_timing,
                     std::string results_folder, int win_size = 5);
 
+  bool ProcessUncertaintyExtraction(pnec::frames::BaseFrame::Ptr host_frame,
+                                    pnec::frames::BaseFrame::Ptr target_frame,
+                                    Sophus::SE3d init_pose,
+                                    std::string results_folder,
+                                    bool extract_host = true);
+
+  bool ProcessUncertaintyExtractionVO(pnec::frames::BaseFrame::Ptr frame,
+                                      Sophus::SE3d init_pose,
+                                      std::string results_folder,
+                                      bool save_uncertainty);
+
 private:
   Sophus::SO3d PrevRelRotation(pnec::odometry::View::Ptr prev_view,
                                int prev_view_idx);
@@ -87,10 +98,8 @@ private:
   int skipping_counter_;
 
   bool no_skip_;
-
-  // opencv imshow
+  size_t extraction_counter_ = 0;
   pnec::visualization::Options visualization_options_;
-  // VisualizationLevel visualization_level_;
 };
 } // namespace odometry
 } // namespace pnec

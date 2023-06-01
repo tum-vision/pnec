@@ -62,5 +62,16 @@ void TrackingFrame::FindFeatures(pnec::common::FrameTiming &frame_timing) {
 
   keypoints_ = pnec::converter::KeyPointsFromOpticalFlow(result, true);
 }
+
+void TrackingFrame::FindFeatures2(const cv::Mat &image,
+                                  const Eigen::Vector2d &offset) {
+  basalt::OpticalFlowInput::Ptr img_ptr =
+      pnec::converter::OpticalFlowFromOpenCV(image, id_);
+
+  basalt::PNECOpticalFlowResult::Ptr result =
+      tracking_.processFrame(id_, img_ptr, offset);
+
+  keypoints_ = pnec::converter::KeyPointsFromOpticalFlow(result, true);
+}
 } // namespace frames
 } // namespace pnec

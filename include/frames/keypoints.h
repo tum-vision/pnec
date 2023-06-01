@@ -68,7 +68,7 @@ private:
   void Unproject();
 };
 
-cv::KeyPoint KeyPointToCV(const KeyPoint &keypoint);
+cv::KeyPoint KeyPointToCV(KeyPoint keypoint);
 
 typedef size_t KeyPointID;
 typedef std::map<KeyPointID, KeyPoint> KeyPoints;

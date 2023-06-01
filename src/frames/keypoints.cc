@@ -61,7 +61,7 @@ void KeyPoint::Unproject() {
                                                     pnec::common::Pinhole);
 }
 
-cv::KeyPoint KeyPointToCV(const KeyPoint &keypoint) {
+cv::KeyPoint KeyPointToCV(KeyPoint keypoint) {
   return cv::KeyPoint(keypoint.point_(0), keypoint.point_(1), 1.0);
 }
 

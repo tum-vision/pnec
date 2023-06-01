@@ -62,6 +62,12 @@ public:
                 const std::vector<Eigen::Matrix3d> &covs, double regularization,
                 pnec::common::NoiseFrame noise_frame = pnec::common::Target);
 
+  void Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
+                const std::vector<Eigen::Vector3d> &bvs_2,
+                const std::vector<Eigen::Matrix3d> &covs_1,
+                const std::vector<Eigen::Matrix3d> &covs_2,
+                double regularization);
+
   void InitValues(const Eigen::Quaterniond orientation, double theta,
                   double phi);
   void InitValues(const Sophus::SE3d &init);

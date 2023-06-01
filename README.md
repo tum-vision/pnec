@@ -73,7 +73,21 @@ Go to the root directory
   cmake ..
   make
 ```
+
+### pybind
+We provide a pybind of the pose optimization and the KLT-feature extraction methods.
+
 ## Usage
+### Simple Patch extraction
+Run localy:
+
+set directory of the seqences and outputs in the ```uncertainty_extraction.sh``` file.
+Run
+```
+./uncertainty_extraction.sh "sequence_name"
+```
+TODO: patch extraction on the target frame based on VO system (no rotation of patch uncertainty)
+
 ### Example in a docker container
 1. Build the docker image
 2. Create the container \

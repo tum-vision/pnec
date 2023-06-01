@@ -87,13 +87,17 @@ void NECCeres::Optimize(const std::vector<Eigen::Vector3d> &bvs_1,
                              orientation_.coeffs().data());
   }
 
-  problem.SetParameterization(orientation_.coeffs().data(),
-                              new ceres::EigenQuaternionParameterization);
+  ceres::Manifold *quaternion_manifold = new ceres::EigenQuaternionManifold;
+  // std::cout << "here" << std::endl;
+
+  problem.SetManifold(orientation_.coeffs().data(), quaternion_manifold);
+  // problem.SetParameterization(orientation_.coeffs().data(),
+  //                             new ceres::EigenQuaternionParameterization);
 
   ceres::Solve(options_, &problem, &summary_);
 
-  BOOST_LOG_TRIVIAL(trace) << summary_.BriefReport() << "\n";
-  BOOST_LOG_TRIVIAL(trace) << summary_.FullReport() << "\n";
+  // BOOST_LOG_TRIVIAL(trace) << summary_.BriefReport() << "\n";
+  // BOOST_LOG_TRIVIAL(trace) << summary_.FullReport() << "\n";
 }
 
 void NECCeres::InitValues(const Eigen::Quaterniond orientation, double theta,
